@@ -80,6 +80,17 @@ INSTALLED_APPS = [
     
 ]
 
+cloudinary_cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+cloudinary_api_key = os.getenv("CLOUDINARY_API_KEY")
+cloudinary_api_secret = os.getenv("CLOUDINARY_API_SECRET")
+USE_CLOUDINARY_MEDIA = all([cloudinary_cloud_name, cloudinary_api_key, cloudinary_api_secret])
+
+if USE_CLOUDINARY_MEDIA:
+    INSTALLED_APPS += [
+        "cloudinary",
+        "cloudinary_storage",
+    ]
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -171,7 +182,6 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Additional locations of static files
 STATICFILES_DIRS = [
@@ -181,6 +191,23 @@ STATICFILES_DIRS = [
 # Media files (User uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+if USE_CLOUDINARY_MEDIA:
+    CLOUDINARY_STORAGE = {
+        "CLOUD_NAME": cloudinary_cloud_name,
+        "API_KEY": cloudinary_api_key,
+        "API_SECRET": cloudinary_api_secret,
+        "SECURE": True,
+    }
+    STORAGES = {
+        "default": {"BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }
+else:
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }
 
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB

@@ -5,3 +5,5 @@ stripe>=13.0
 gunicorn>=22.0
 whitenoise>=6.8
 dj-database-url>=2.2
+cloudinary>=1.41.0
+django-cloudinary-storage>=0.3.0

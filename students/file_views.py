@@ -1,19 +1,18 @@
 from django.http import HttpResponse, Http404, HttpResponseRedirect
 from django.views.decorators.http import require_http_methods
 from django.shortcuts import render
-from django.conf import settings
+from django.core.files.storage import default_storage
 from pathlib import Path
 import mimetypes
 import urllib.parse
 
 
-def _safe_media_path(file_path: str) -> Path:
-    """Resolve a user-provided media path and block path traversal."""
-    media_root = Path(settings.MEDIA_ROOT).resolve()
-    target = (media_root / file_path).resolve()
-    if target != media_root and media_root not in target.parents:
+def _validate_file_path(file_path: str) -> str:
+    """Validate user-provided media path and block path traversal."""
+    normalized = file_path.replace("\\", "/").lstrip("/")
+    if ".." in Path(normalized).parts:
         raise Http404("Invalid path")
-    return target
+    return normalized
 
 
 @require_http_methods(["GET"])
@@ -21,20 +20,15 @@ def serve_file_view(request, file_path):
     """
     Serve files with proper headers for viewing instead of downloading
     """
-    # Construct the full file path
-    full_path = _safe_media_path(file_path)
-    
-    # Check if file exists
-    if not full_path.exists():
+    storage_path = _validate_file_path(file_path)
+    if not default_storage.exists(storage_path):
         raise Http404("File not found")
-    
-    # Get file info
-    file_size = full_path.stat().st_size
-    file_name = full_path.name
-    file_extension = full_path.suffix.lower()
-    
+
+    file_name = Path(storage_path).name
+    file_extension = Path(storage_path).suffix.lower()
+
     # Get MIME type
-    mime_type, _ = mimetypes.guess_type(str(full_path))
+    mime_type, _ = mimetypes.guess_type(file_name)
     if not mime_type:
         mime_type = 'application/octet-stream'
     
@@ -67,29 +61,26 @@ def serve_file_view(request, file_path):
         # Force correct MIME type for viewable files
         mime_type = viewable_types[file_extension]
         
-        # Read file content
-        with full_path.open('rb') as f:
+        with default_storage.open(storage_path, 'rb') as f:
             file_content = f.read()
-        
-        # Create response with proper headers for viewing
         response = HttpResponse(file_content, content_type=mime_type)
-        
-        # Set headers to encourage viewing instead of downloading
-        response['Content-Length'] = file_size
+
+        try:
+            response['Content-Length'] = default_storage.size(storage_path)
+        except Exception:
+            pass
         response['Content-Disposition'] = f'inline; filename="{file_name}"'
         response['X-Content-Type-Options'] = 'nosniff'
         
         # Allow iframe embedding for file viewer
         response['X-Frame-Options'] = 'SAMEORIGIN'
         
-        # Add cache headers for better performance
         response['Cache-Control'] = 'public, max-age=3600'
-        
         return response
     else:
-        # For Office documents and other non-viewable files, redirect to online viewers
-        relative_path = full_path.relative_to(Path(settings.MEDIA_ROOT).resolve()).as_posix()
-        file_url = request.build_absolute_uri(f'/media/{relative_path}')
+        file_url = default_storage.url(storage_path)
+        if file_url.startswith("/"):
+            file_url = request.build_absolute_uri(file_url)
         
         # Use Microsoft Office Online viewer for Office documents
         if file_extension in ['.docx', '.doc', '.pptx', '.ppt', '.xlsx', '.xls']:
@@ -99,25 +90,21 @@ def serve_file_view(request, file_path):
             )
             return HttpResponseRedirect(office_viewer_url)
         
-        # For other files, try to serve with inline disposition
-        # Read file content
-        with full_path.open('rb') as f:
+        with default_storage.open(storage_path, 'rb') as f:
             file_content = f.read()
-        
-        # Create response with proper headers
         response = HttpResponse(file_content, content_type=mime_type)
-        
-        # Set headers to encourage viewing instead of downloading
-        response['Content-Length'] = file_size
+
+        try:
+            response['Content-Length'] = default_storage.size(storage_path)
+        except Exception:
+            pass
         response['Content-Disposition'] = f'inline; filename="{file_name}"'
         response['X-Content-Type-Options'] = 'nosniff'
         
         # Allow iframe embedding for file viewer
         response['X-Frame-Options'] = 'SAMEORIGIN'
         
-        # Add cache headers for better performance
         response['Cache-Control'] = 'public, max-age=3600'
-        
         return response
 
 @require_http_methods(["GET"])
@@ -125,24 +112,21 @@ def view_file(request, file_path):
     """
     View file in a new tab with proper embedding
     """
-    # Construct the full file path
-    full_path = _safe_media_path(file_path)
-    
-    # Check if file exists
-    if not full_path.exists():
+    storage_path = _validate_file_path(file_path)
+    if not default_storage.exists(storage_path):
         raise Http404("File not found")
-    
-    file_name = full_path.name
-    file_extension = full_path.suffix.lower()
+
+    file_name = Path(storage_path).name
+    file_extension = Path(storage_path).suffix.lower()
     
     # Get MIME type
-    mime_type, _ = mimetypes.guess_type(str(full_path))
+    mime_type, _ = mimetypes.guess_type(file_name)
     if not mime_type:
         mime_type = 'application/octet-stream'
-    
-    # Create the file URL
-    relative_path = full_path.relative_to(Path(settings.MEDIA_ROOT).resolve()).as_posix()
-    file_url = request.build_absolute_uri(f'/media/{relative_path}')
+
+    file_url = default_storage.url(storage_path)
+    if file_url.startswith("/"):
+        file_url = request.build_absolute_uri(file_url)
     
     # Define file types that can be viewed in browser
     viewable_types = {
