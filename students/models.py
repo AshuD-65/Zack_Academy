@@ -5,6 +5,14 @@ from decimal import Decimal
 import uuid
 import os
 
+try:
+    from cloudinary_storage.storage import RawMediaCloudinaryStorage
+except Exception:
+    RawMediaCloudinaryStorage = None
+
+
+raw_media_storage = RawMediaCloudinaryStorage() if RawMediaCloudinaryStorage else None
+
 
 def student_profile_picture_upload_path(instance, filename):
     """Generate upload path for student profile pictures"""
@@ -194,7 +202,12 @@ class CourseMaterial(models.Model):
     material_type = models.CharField(max_length=10, choices=MATERIAL_TYPE_CHOICES)
     
     # For uploaded files
-    file = models.FileField(upload_to=course_material_upload_path, blank=True, null=True)
+    file = models.FileField(
+        upload_to=course_material_upload_path,
+        blank=True,
+        null=True,
+        storage=raw_media_storage,
+    )
     
     # For external URLs (YouTube, Vimeo, etc.)
     external_url = models.URLField(blank=True, null=True)
@@ -269,7 +282,7 @@ class CourseMaterialFile(models.Model):
     
     file_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     material = models.ForeignKey(CourseMaterial, on_delete=models.CASCADE, related_name='files')
-    file = models.FileField(upload_to=course_material_file_upload_path)
+    file = models.FileField(upload_to=course_material_file_upload_path, storage=raw_media_storage)
     file_type = models.CharField(max_length=10, choices=FILE_TYPE_CHOICES, default=FILE_TYPE_DOCUMENT)
     title = models.CharField(max_length=200, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
@@ -379,7 +392,12 @@ class AssignmentSubmission(models.Model):
         related_name='submissions',
         limit_choices_to={'kind': CourseMaterial.KIND_ASSIGNMENT},
     )
-    file = models.FileField(upload_to=assignment_submission_upload_path, blank=True, null=True)
+    file = models.FileField(
+        upload_to=assignment_submission_upload_path,
+        blank=True,
+        null=True,
+        storage=raw_media_storage,
+    )
     text_answer = models.TextField(blank=True, null=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
     grade = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
