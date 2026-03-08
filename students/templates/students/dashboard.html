@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Zack Academy{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Welcome Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+            Welcome back, {% if student %}{{ student.name }}{% else %}Student{% endif %}!
+        </h1>
+        <p class="text-gray-600">Here's an overview of your academic progress</p>
+    </div>
+
+    {% if student %}
+    <!-- Profile Card -->
+    <div class="card mb-8">
+        <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
+            <div class="flex-shrink-0">
+                {% if student.profile_picture %}
+                    <img src="{{ student.profile_picture.url }}" alt="Profile" 
+                         class="w-24 h-24 rounded-full object-cover border-4 border-primary-100">
+                {% else %}
+                    <div class="w-24 h-24 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center">
+                        <span class="text-white text-3xl font-bold">{{ student.name.0|upper }}</span>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="flex-grow text-center md:text-left">
+                <h2 class="text-2xl font-semibold mb-4">Student Information</h2>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600">Student ID</p>
+                        <p class="font-semibold">{{ student.student_id }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Email</p>
+                        <p class="font-semibold">{{ student.email }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Date of Birth</p>
+                        <p class="font-semibold">{{ student.date_of_birth }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Major</p>
+                        <p class="font-semibold">{{ student.major }}</p>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <a href="{% url 'edit_profile' %}" class="btn-outline text-sm">
+                        Edit Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid md:grid-cols-3 gap-4 mb-8">
+        <a href="{% url 'course_list' %}" class="card hover:shadow-lg transition-shadow text-center">
+            <div class="text-3xl mb-2">📚</div>
+            <h3 class="font-semibold mb-1">Browse Courses</h3>
+            <p class="text-sm text-gray-600">Explore available courses</p>
+        </a>
+        <a href="{% url 'generate_certificate' %}" class="card hover:shadow-lg transition-shadow text-center">
+            <div class="text-3xl mb-2">🏆</div>
+            <h3 class="font-semibold mb-1">My Certificate</h3>
+            <p class="text-sm text-gray-600">View your achievements</p>
+        </a>
+        <a href="{% url 'edit_profile' %}" class="card hover:shadow-lg transition-shadow text-center">
+            <div class="text-3xl mb-2">👤</div>
+            <h3 class="font-semibold mb-1">Edit Profile</h3>
+            <p class="text-sm text-gray-600">Update your information</p>
+        </a>
+    </div>
+
+    <!-- Enrolled Courses -->
+    <div class="card mb-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold">Enrolled Courses</h2>
+            <a href="{% url 'course_list' %}" class="text-primary-600 hover:text-primary-700 font-medium">
+                Browse More →
+            </a>
+        </div>
+        {% if enrolled_courses %}
+            <div class="space-y-4">
+                {% for course in enrolled_courses %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-grow">
+                            <a href="{% url 'course_detail' course.course_code %}" class="text-lg font-semibold text-gray-900 hover:text-primary-600">
+                                {{ course.course_code }} - {{ course.course_name }}
+                            </a>
+                            <p class="text-sm text-gray-600 mt-1">{{ course.instructor }}</p>
+                        </div>
+                        <form action="{% url 'delete_enrollment' course.course_code %}" method="post" class="ml-4">
+                            {% csrf_token %}
+                            <button type="submit" class="text-red-600 hover:text-red-700 text-sm font-medium">
+                                Remove
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-600 text-center py-8">You are not enrolled in any courses yet.</p>
+            <div class="text-center">
+                <a href="{% url 'course_list' %}" class="btn-primary">Browse Courses</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Progress Summary -->
+    <div class="card">
+        <h2 class="text-2xl font-semibold mb-6">Course Progress</h2>
+        {% if progress_summaries %}
+            <div class="space-y-6">
+                {% for item in progress_summaries %}
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <a href="{% url 'course_detail' item.course.course_code %}" class="text-lg font-semibold text-gray-900 hover:text-primary-600">
+                                {{ item.course.course_code }} - {{ item.course.course_name }}
+                            </a>
+                            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                {% if item.status == 'COMPLETED' %}bg-green-100 text-green-800
+                                {% elif item.status == 'IN_PROGRESS' %}bg-blue-100 text-blue-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ item.status }}
+                            </span>
+                        </div>
+                        {% if item.certificate_url %}
+                            <a href="{{ item.certificate_url }}" target="_blank" class="btn-outline text-sm">
+                                View Certificate
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm text-gray-600 mb-2">
+                            <span>Progress</span>
+                            <span class="font-semibold">{{ item.progress_percent }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3">
+                            <div class="bg-primary-600 h-3 rounded-full transition-all duration-300" 
+                                 style="width: {{ item.progress_percent }}%"></div>
+                        </div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-600">Grade:</span>
+                            <span class="font-semibold ml-2">{{ item.grade|default:"—" }}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Completed:</span>
+                            <span class="font-semibold ml-2">{{ item.completed_at|default:"—" }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-600 text-center py-8">No progress to display yet.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

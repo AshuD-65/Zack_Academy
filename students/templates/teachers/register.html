@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Teacher Registration - Zack Academy{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <div class="flex justify-center">
+                <div class="w-16 h-16 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-xl flex items-center justify-center">
+                    <span class="text-white font-bold text-2xl">Z</span>
+                </div>
+            </div>
+            <h2 class="mt-6 text-center text-3xl font-bold text-gray-900">
+                Create a Teacher Account
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                Already have an account?
+                <a href="{% url 'login_student' %}" class="font-medium text-primary-600 hover:text-primary-500">
+                    Login
+                </a>
+            </p>
+        </div>
+
+        <form class="mt-8 space-y-6" method="post">
+            {% csrf_token %}
+
+            <div class="rounded-md shadow-sm space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Teacher ID</label>
+                    <input type="text" name="{{ form.teacher_id.name }}" value="{{ form.teacher_id.value|default_if_none:'' }}"
+                           class="input-field" required>
+                    {% if form.teacher_id.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.teacher_id.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Staff ID</label>
+                    <input type="text" name="{{ form.staff_id.name }}" value="{{ form.staff_id.value|default_if_none:'' }}"
+                           class="input-field" required autocomplete="off">
+                    <p class="mt-1 text-xs text-gray-500">Contact your administrator to obtain your Staff ID.</p>
+                    {% if form.staff_id.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.staff_id.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input type="text" name="{{ form.name.name }}" value="{{ form.name.value|default_if_none:'' }}"
+                           class="input-field" placeholder="Your name" required>
+                    {% if form.name.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" name="{{ form.email.name }}" value="{{ form.email.value|default_if_none:'' }}"
+                           class="input-field" placeholder="you@example.com" required>
+                    {% if form.email.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" name="{{ form.password.name }}"
+                           class="input-field" placeholder="Create a password" required>
+                    {% if form.password.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.password.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                    <input type="password" name="{{ form.confirm_password.name }}"
+                           class="input-field" placeholder="Re-enter password" required>
+                    {% if form.confirm_password.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.confirm_password.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+                    {{ form.non_field_errors.0 }}
+                </div>
+            {% endif %}
+
+            <div>
+                <button type="submit" class="btn-primary w-full py-3 text-lg">
+                    Create Teacher Account
+                </button>
+            </div>
+
+            <div class="text-center">
+                <a href="{% url 'home' %}" class="text-sm text-gray-600 hover:text-primary-600">
+                    ← Back to Home
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+

@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Material - {{ course.course_code }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-1">Add Lesson / Assignment</h1>
+        <p class="text-gray-600">
+            Course: <span class="font-semibold">{{ course.course_code }} - {{ course.course_name }}</span>
+        </p>
+    </div>
+
+    <div class="card">
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Title
+                </label>
+                <input type="text" name="{{ form.title.name }}" value="{{ form.title.value|default_if_none:'' }}"
+                       class="input-field" placeholder="e.g., Week 1: Introduction" required>
+                {% if form.title.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.title.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                </label>
+                <textarea name="{{ form.description.name }}" rows="4"
+                          class="input-field" placeholder="Short description of this lesson or assignment">{{ form.description.value|default_if_none:'' }}</textarea>
+                {% if form.description.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Type
+                    </label>
+                    {{ form.kind }}
+                    {% if form.kind.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.kind.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Material Type
+                    </label>
+                    {{ form.material_type }}
+                    {% if form.material_type.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.material_type.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Display Order
+                    </label>
+                    <input type="number" name="{{ form.order.name }}" value="{{ form.order.value|default_if_none:0 }}"
+                           class="input-field" min="0">
+                    {% if form.order.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.order.errors.0 }}</p>
+                    {% endif %}
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Upload File (optional)
+                    </label>
+                    <input type="file" name="{{ form.file.name }}" class="input-field">
+                    {% if form.file.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.file.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        External URL (optional)
+                    </label>
+                    <input type="url" name="{{ form.external_url.name }}" value="{{ form.external_url.value|default_if_none:'' }}"
+                           class="input-field" placeholder="https://...">
+                    {% if form.external_url.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.external_url.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <label class="inline-flex items-center">
+                    <input type="checkbox" name="{{ form.is_visible.name }}" class="h-4 w-4 text-primary-600 border-gray-300 rounded"
+                           {% if form.is_visible.value or form.is_visible.value is None %}checked{% endif %}>
+                    <span class="ml-2 text-sm text-gray-700">Visible to students</span>
+                </label>
+                <label class="inline-flex items-center">
+                    <input type="checkbox" name="{{ form.is_important.name }}" class="h-4 w-4 text-primary-600 border-gray-300 rounded"
+                           {% if form.is_important.value %}checked{% endif %}>
+                    <span class="ml-2 text-sm text-gray-700">Mark as important</span>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <a href="{% url 'teacher_dashboard' %}" class="text-sm text-gray-600 hover:text-primary-600">
+                    ← Back to Teacher Dashboard
+                </a>
+                <button type="submit" class="btn-primary">
+                    Save Material
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+

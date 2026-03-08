@@ -1,0 +1,292 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ course.course_name }} - Teacher View - Zack Academy{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Course Header -->
+    <div class="mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <a href="{% url 'teacher_dashboard' %}" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                    </a>
+                    <h1 class="text-3xl font-bold text-gray-900">{{ course.course_name }}</h1>
+                </div>
+                <p class="text-lg text-gray-600">{{ course.course_code }}</p>
+            </div>
+            {% if course.is_approved %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    ✓ Approved – visible to students
+                </span>
+            {% else %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                    ⏳ Pending admin approval
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Main Content (left) -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Course Information -->
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-4">Course Information</h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Instructor</p>
+                        <p class="font-semibold">{{ course.instructor }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Credits</p>
+                        <p class="font-semibold">{{ course.credits }} Credits</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Schedule</p>
+                        <p class="font-semibold">{{ course.schedule }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Duration</p>
+                        <p class="font-semibold">{{ course.duration_weeks }} Weeks</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Price</p>
+                        <p class="font-semibold text-primary-600">${{ course.price }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Enrolled Students</p>
+                        <p class="font-semibold">{{ enrolled_students_count }} Students</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h3 class="font-semibold mb-2">Course Description</h3>
+                    <p class="text-gray-700">
+                        This comprehensive course covers all essential topics in {{ course.course_name }}.
+                        Students gain practical knowledge and skills through interactive materials,
+                        hands-on exercises, and real-world applications. The course is designed to be
+                        completed over {{ course.duration_weeks }} weeks with {{ course.credits }} credit hours.
+                    </p>
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h3 class="font-semibold mb-3">Learning Objectives</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-start">
+                            <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="text-gray-700">Master fundamental concepts and principles</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="text-gray-700">Apply theoretical knowledge to practical scenarios</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="text-gray-700">Develop critical thinking and problem-solving skills</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="text-gray-700">Complete hands-on projects and assignments</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Course Materials -->
+            {% if materials %}
+            <div class="card">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold">Course Materials</h2>
+                    <div class="flex gap-2">
+                        {% if important_materials %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            {{ important_materials.count }} Important
+                        </span>
+                        {% endif %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Total: {{ materials.count }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="border-b border-gray-200 mb-6">
+                    <nav class="-mb-px flex space-x-8">
+                        <button onclick="showTab('lessons')" id="tab-lessons" class="tab-button border-b-2 border-primary-500 text-primary-600 py-4 px-1 text-sm font-medium">
+                            Lessons ({{ lessons.count }})
+                        </button>
+                        <button onclick="showTab('assignments')" id="tab-assignments" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium">
+                            Assignments ({{ assignments.count }})
+                        </button>
+                    </nav>
+                </div>
+
+                <div id="content-lessons" class="tab-content">
+                    {% if lessons %}
+                    <div class="space-y-4">
+                        {% for m in lessons %}
+                        <div class="border border-gray-200 rounded-lg p-4 {% if not m.is_visible %}bg-gray-50 opacity-75{% endif %}">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <h3 class="font-semibold text-lg">{{ m.title }}</h3>
+                                        {% if not m.is_visible %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700">
+                                            Hidden
+                                        </span>
+                                        {% endif %}
+                                        {% if m.is_important %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            Important
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-xs text-gray-500">Order: {{ m.order }} • Created: {{ m.created_at|date:"M d, Y" }}</p>
+                                </div>
+                            </div>
+                            {% if m.description %}<p class="text-gray-600 mb-3">{{ m.description }}</p>{% endif %}
+                            <div class="flex flex-wrap gap-2">
+                                {% if m.external_url %}
+                                    <a href="{{ m.external_url }}" target="_blank" class="btn-primary text-sm">Open URL</a>
+                                {% elif m.file %}
+                                    <a href="{% url 'view_file' m.file.name %}?course_code={{ course.course_code }}" target="_blank" class="btn-primary text-sm">View</a>
+                                    <a href="{{ m.file.url }}" download class="btn-outline text-sm">Download</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                        <p class="text-gray-600">No lessons yet.</p>
+                    {% endif %}
+                </div>
+
+                <div id="content-assignments" class="tab-content hidden">
+                    {% if assignments %}
+                    <div class="space-y-4">
+                        {% for m in assignments %}
+                        <div class="border border-gray-200 rounded-lg p-4 {% if not m.is_visible %}bg-gray-50 opacity-75{% endif %}">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <h3 class="font-semibold text-lg">{{ m.title }}</h3>
+                                        {% if not m.is_visible %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700">
+                                            Hidden
+                                        </span>
+                                        {% endif %}
+                                        {% if m.is_important %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            Important
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-xs text-gray-500">Order: {{ m.order }} • Created: {{ m.created_at|date:"M d, Y" }}</p>
+                                </div>
+                            </div>
+                            {% if m.description %}<p class="text-gray-600 mb-3">{{ m.description }}</p>{% endif %}
+                            <div class="flex flex-wrap gap-2 items-center">
+                                {% if m.external_url %}
+                                    <a href="{{ m.external_url }}" target="_blank" class="btn-primary text-sm">Open URL</a>
+                                {% elif m.file %}
+                                    <a href="{% url 'view_file' m.file.name %}?course_code={{ course.course_code }}" target="_blank" class="btn-primary text-sm">View</a>
+                                    <a href="{{ m.file.url }}" download class="btn-outline text-sm">Download</a>
+                                {% endif %}
+                                <a href="{% url 'teacher_submissions' course.course_code m.material_id %}" class="btn-outline text-sm">View Submissions</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                        <p class="text-gray-600">No assignments yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="text-center py-8">
+                    <p class="text-gray-600 mb-4">No course materials yet.</p>
+                    <a href="{% url 'teacher_add_lesson' course.course_code %}" class="btn-primary">Add Lesson</a>
+                    <a href="{% url 'teacher_add_assignment' course.course_code %}" class="btn-outline">Add Assignment</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar (right) -->
+        <div class="lg:col-span-1">
+            <div class="card sticky top-20 mb-6">
+                <h3 class="font-semibold mb-4">Quick Actions</h3>
+                <div class="space-y-3">
+                    <a href="{% url 'teacher_edit_course' course.course_code %}" class="block w-full btn-outline text-sm text-center">
+                        Edit Course Details
+                    </a>
+                    <a href="{% url 'teacher_add_lesson' course.course_code %}" class="block w-full btn-outline text-sm text-center">Add Lesson</a>
+                    <a href="{% url 'teacher_add_assignment' course.course_code %}" class="block w-full btn-primary text-sm text-center">Add Assignment</a>
+                    <a href="{% url 'teacher_exam_manage' course.course_code %}" class="block w-full btn-outline text-sm text-center">
+                        Manage Exam
+                    </a>
+                </div>
+            </div>
+
+            <!-- Enrolled Students -->
+            <div class="card">
+                <h3 class="font-semibold mb-4">Enrolled Students</h3>
+                {% if enrolled_students %}
+                <div class="space-y-3">
+                    <p class="text-sm text-gray-600 mb-3">Total: <span class="font-semibold">{{ enrolled_students_count }}</span></p>
+                    <div class="max-h-96 overflow-y-auto space-y-2">
+                        {% for student in enrolled_students|slice:":20" %}
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ student.name }}</p>
+                                <p class="text-xs text-gray-500">{{ student.student_id }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% if enrolled_students_count > 20 %}
+                        <p class="text-xs text-gray-500 text-center pt-2">... and {{ enrolled_students_count|add:"-20" }} more</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-sm text-gray-600">No students enrolled yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+  document.querySelectorAll('.tab-button').forEach(button => {
+    button.classList.remove('active', 'border-primary-500', 'text-primary-600');
+    button.classList.add('border-transparent', 'text-gray-500');
+  });
+  document.getElementById('content-' + tabName).classList.remove('hidden');
+  const activeTab = document.getElementById('tab-' + tabName);
+  activeTab.classList.add('active', 'border-primary-500', 'text-primary-600');
+  activeTab.classList.remove('border-transparent', 'text-gray-500');
+}
+
+// Select initial tab from URL (?tab=lessons|assignments)
+(() => {
+  const tab = new URLSearchParams(window.location.search).get('tab');
+  if (tab === 'assignments') showTab('assignments');
+  else showTab('lessons');
+})();
+</script>
+{% endblock %}

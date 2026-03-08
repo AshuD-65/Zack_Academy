@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex min-h-[calc(100vh-4rem)]">
+    <aside class="w-64 bg-slate-950 text-slate-100 border-r border-slate-800 flex-shrink-0">
+        <div class="p-4 border-b border-slate-800">
+            <p class="text-xs uppercase tracking-widest text-slate-400">Control Center</p>
+            <h2 class="font-bold text-white mt-1">Admin Panel</h2>
+        </div>
+        <nav class="p-4 space-y-1">
+            <a href="{% url 'admin_dashboard' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-slate-200 hover:bg-slate-800">Dashboard</a>
+            <a href="{% url 'admin_all_students' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-slate-200 hover:bg-slate-800">Students</a>
+            <a href="{% url 'admin_all_teachers' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-slate-200 hover:bg-slate-800">Teachers</a>
+            <a href="{% url 'admin_all_courses' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-slate-200 hover:bg-slate-800">Courses</a>
+            <a href="{% url 'admin_all_users' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-slate-200 hover:bg-slate-800">All Users</a>
+            <a href="{% url 'admin_staff_ids' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-slate-200 hover:bg-slate-800">Staff IDs</a>
+        </nav>
+    </aside>
+    <main class="flex-1 overflow-auto">
+        {% block admin_content %}{% endblock %}
+    </main>
+</div>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Teacher Dashboard - Zack Academy{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Welcome Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+            Welcome back, {{ teacher.name }}!
+        </h1>
+        <p class="text-gray-600">Manage your courses, lessons, and assignments from here.</p>
+    </div>
+
+    <!-- Teacher Profile Card -->
+    <div class="card mb-8">
+        <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
+            <div class="flex-shrink-0">
+                {% if teacher.profile_picture %}
+                    <img src="{{ teacher.profile_picture.url }}" alt="Profile" 
+                         class="w-24 h-24 rounded-full object-cover border-4 border-primary-100">
+                {% else %}
+                    <div class="w-24 h-24 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center">
+                        <span class="text-white text-3xl font-bold">{{ teacher.name.0|upper }}</span>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="flex-grow text-center md:text-left">
+                <h2 class="text-2xl font-semibold mb-4">Teacher Information</h2>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Name</p>
+                        <p class="font-semibold text-gray-900">{{ teacher.name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Email</p>
+                        <p class="font-semibold text-gray-900">{{ teacher.email }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Teacher ID</p>
+                        <p class="font-semibold text-gray-900">{{ teacher.teacher_id }}</p>
+                    </div>
+                    <!-- Status removed: teachers are always active; course approval controls visibility -->
+                </div>
+                <div class="mt-6">
+                    <a href="{% url 'teacher_edit_profile' %}" class="btn-primary text-sm">
+                        Edit Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <a href="{% url 'teacher_create_course' %}" class="btn-primary text-sm">Create Course</a>
+    </div>
+
+    <div class="card mb-8">
+        <h2 class="text-2xl font-semibold mb-4">Your Courses</h2>
+        {% if courses %}
+            <div class="space-y-4">
+                {% for course in courses %}
+                    <div class="border border-gray-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                {{ course.course_code }} - {{ course.course_name }}
+                            </h3>
+                            <p class="text-sm text-gray-600 mt-1">
+                                Schedule: {{ course.schedule }} • Credits: {{ course.credits }} • Duration: {{ course.duration_weeks }} weeks
+                            </p>
+                            <p class="text-xs mt-1">
+                                {% if course.is_approved %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Approved – visible to students
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        Pending admin approval
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="{% url 'teacher_course_detail' course.course_code %}" class="btn-outline text-sm">
+                                View
+                            </a>
+                            <a href="{% url 'teacher_add_lesson' course.course_code %}" class="btn-outline text-sm">Add Lesson</a>
+                            <a href="{% url 'teacher_add_assignment' course.course_code %}" class="btn-primary text-sm">Add Assignment</a>
+                            <form method="post" action="{% url 'teacher_delete_course' course.course_code %}" class="inline" onsubmit="return confirm('Are you sure you want to delete the course \"{{ course.course_name }}\"? This action cannot be undone and will delete all course materials and student enrollments.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-outline text-sm text-red-600 border-red-200 hover:bg-red-50">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-600">No courses are currently assigned to you. An administrator can assign courses to your account.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+

@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}Register - Zack Academy{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-2xl w-full space-y-8">
+        <div>
+            <div class="flex justify-center">
+                <div class="w-16 h-16 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-xl flex items-center justify-center">
+                    <span class="text-white font-bold text-2xl">Z</span>
+                </div>
+            </div>
+            <h2 class="mt-6 text-center text-3xl font-bold text-gray-900">
+                Create your account
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                Already have an account?
+                <a href="{% url 'login_student' %}" class="font-medium text-primary-600 hover:text-primary-500">
+                    Sign in
+                </a>
+            </p>
+        </div>
+        <form class="mt-8 space-y-6" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="card space-y-6">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.student_id.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            {{ form.student_id.label }} <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="{{ form.student_id.name }}" id="{{ form.student_id.id_for_label }}" 
+                               class="input-field" placeholder="Enter student ID" required>
+                        {% if form.student_id.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.student_id.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            {{ form.name.label }} <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="{{ form.name.name }}" id="{{ form.name.id_for_label }}" 
+                               class="input-field" placeholder="Enter full name" required>
+                        {% if form.name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.email.label }} <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" name="{{ form.email.name }}" id="{{ form.email.id_for_label }}" 
+                           class="input-field" placeholder="Enter email address" required>
+                    {% if form.email.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.password.label }} <span class="text-red-500">*</span>
+                    </label>
+                    <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}" 
+                           class="input-field" placeholder="Enter password" required>
+                    {% if form.password.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.password.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.confirm_password.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Confirm Password <span class="text-red-500">*</span>
+                    </label>
+                    <input type="password" name="{{ form.confirm_password.name }}" id="{{ form.confirm_password.id_for_label }}" 
+                           class="input-field" placeholder="Re-enter password" required>
+                    {% if form.confirm_password.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.confirm_password.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.date_of_birth.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            {{ form.date_of_birth.label }} <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" name="{{ form.date_of_birth.name }}" id="{{ form.date_of_birth.id_for_label }}" 
+                               class="input-field" required>
+                        {% if form.date_of_birth.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.date_of_birth.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.major.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            {{ form.major.label }} <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="{{ form.major.name }}" id="{{ form.major.id_for_label }}" 
+                               class="input-field" placeholder="Enter major" required>
+                        {% if form.major.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.major.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if form.non_field_errors %}
+                    <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+                        {{ form.non_field_errors.0 }}
+                    </div>
+                {% endif %}
+
+                <div>
+                    <button type="submit" class="btn-primary w-full py-3 text-lg">
+                        Create Account
+                    </button>
+                </div>
+                
+                <div class="text-center">
+                    <a href="{% url 'home' %}" class="text-sm text-gray-600 hover:text-primary-600">
+                        ← Back to Home
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

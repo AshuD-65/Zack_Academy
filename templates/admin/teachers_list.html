@@ -1,0 +1,50 @@
+{% extends 'admin_base.html' %}
+{% block title %}Teachers - Admin{% endblock %}
+{% block admin_content %}
+<div class="w-full px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8 flex justify-between items-center">
+        <h1 class="text-3xl font-bold text-gray-900">Teachers</h1>
+        <a href="{% url 'admin_teacher_create' %}" class="btn-primary text-sm">Add Teacher</a>
+    </div>
+    <div class="card overflow-x-auto w-full">
+        <table class="w-full min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">ID</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Name</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Email</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-600 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for t in teachers %}
+                <tr>
+                    <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ t.teacher_id }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">
+                        <div class="flex items-center gap-3">
+                            {% if t.profile_picture %}
+                                <img src="{{ t.profile_picture.url }}" alt="{{ t.name }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+                            {% else %}
+                                <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-bold">
+                                    {{ t.name.0|upper }}
+                                </div>
+                            {% endif %}
+                            <span class="font-medium">{{ t.name }}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ t.email }}</td>
+                    <td class="px-4 py-3 text-right">
+                        <span class="inline-flex flex-wrap gap-2 justify-end">
+                            <a href="{% url 'admin_teacher_edit' t.teacher_id %}" class="btn-outline text-sm">Edit</a>
+                            <form method="post" action="{% url 'admin_teacher_delete' t.teacher_id %}" class="inline" onsubmit="return confirm('Delete this teacher?');">{% csrf_token %}<button type="submit" class="btn-outline text-sm text-red-600 border-red-200 hover:bg-red-50">Delete</button></form>
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="px-4 py-6 text-gray-600 text-center">No teachers.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

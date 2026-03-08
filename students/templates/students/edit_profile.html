@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Profile - Zack Academy{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<style>
+    .img-container {
+        max-width: 400px;
+        max-height: 300px;
+        margin: 0 auto;
+        overflow: hidden;
+    }
+    .img-container img {
+        max-height: 300px;
+        width: auto;
+    }
+    .img-preview {
+        width: 120px;
+        height: 120px;
+        margin: 10px auto;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 3px solid #e5e7eb;
+    }
+    #imagePreview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    #cropModal .bg-white {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Edit Your Profile</h1>
+        <p class="text-gray-600">Update your personal information</p>
+    </div>
+
+    <div class="card">
+        <!-- Current Profile Picture -->
+        <div class="text-center mb-8 pb-8 border-b border-gray-200">
+            <h3 class="text-lg font-semibold mb-4">Current Profile Picture</h3>
+            {% if student.profile_picture %}
+                <img src="{{ student.profile_picture.url }}" alt="Profile Picture" 
+                     class="w-32 h-32 rounded-full object-cover border-4 border-primary-100 mx-auto" id="currentProfilePic">
+            {% else %}
+                <div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center mx-auto">
+                    <span class="text-white text-4xl font-bold">{{ student.name.0|upper }}</span>
+                </div>
+            {% endif %}
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="space-y-6" id="profileForm">
+            {% csrf_token %}
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Full Name
+                    </label>
+                    <input type="text" name="{{ form.name.name }}" id="{{ form.name.id_for_label }}" 
+                           value="{{ form.name.value|default:student.name }}" class="input-field" required>
+                    {% if form.name.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Email
+                    </label>
+                    <input type="email" name="{{ form.email.name }}" id="{{ form.email.id_for_label }}" 
+                           value="{{ form.email.value|default:student.email }}" class="input-field" required>
+                    {% if form.email.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label for="{{ form.date_of_birth.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Date of Birth
+                    </label>
+                    <input type="date" name="{{ form.date_of_birth.name }}" id="{{ form.date_of_birth.id_for_label }}" 
+                           value="{{ form.date_of_birth.value|default:student.date_of_birth|date:'Y-m-d' }}" class="input-field" required>
+                    {% if form.date_of_birth.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.date_of_birth.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.major.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Major
+                    </label>
+                    <input type="text" name="{{ form.major.name }}" id="{{ form.major.id_for_label }}" 
+                           value="{{ form.major.value|default:student.major }}" class="input-field" required>
+                    {% if form.major.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.major.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                <label for="{{ form.profile_picture.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    Profile Picture
+                </label>
+                <input type="file" name="{{ form.profile_picture.name }}" id="{{ form.profile_picture.id_for_label }}" 
+                       accept="image/*" class="input-field" onchange="handleImageSelect(event)">
+                <p class="mt-1 text-sm text-gray-500">{{ form.profile_picture.help_text }}</p>
+                {% if form.profile_picture.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.profile_picture.errors.0 }}</p>
+                {% endif %}
+                
+                <!-- Image Cropper Modal -->
+                <div id="cropModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
+                    <div class="bg-white rounded-lg max-w-xl w-full p-4 sm:p-6 shadow-2xl">
+                        <h3 class="text-lg sm:text-xl font-semibold mb-2">Adjust Your Profile Picture</h3>
+                        <p class="text-xs sm:text-sm text-gray-600 mb-3">Drag the crop box to adjust. Preview shows how it will appear.</p>
+                        <div class="flex flex-col sm:flex-row gap-4 items-center">
+                            <div class="img-container flex-shrink-0">
+                                <img id="imageToCrop" style="max-width: 100%; max-height: 250px; display: block;">
+                            </div>
+                            <div class="text-center sm:text-left flex-shrink-0">
+                                <p class="text-xs sm:text-sm font-medium text-gray-700 mb-2">Preview:</p>
+                                <div class="img-preview">
+                                    <img id="imagePreview" style="display: block;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-3 sm:gap-4 mt-4 sm:mt-6 pt-4 border-t border-gray-200">
+                            <button type="button" onclick="cancelCrop()" class="px-4 sm:px-6 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors">
+                                Cancel
+                            </button>
+                            <button type="button" onclick="applyCrop()" class="px-4 sm:px-6 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors shadow-md">
+                                Save & Apply
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hidden input for cropped image -->
+                <input type="hidden" name="cropped_image" id="croppedImageInput">
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+                    {{ form.non_field_errors.0 }}
+                </div>
+            {% endif %}
+
+            <div class="flex justify-end gap-4 pt-6 border-t border-gray-200">
+                <a href="{% url 'dashboard' %}" class="btn-outline">
+                    Cancel
+                </a>
+                <button type="submit" class="btn-primary">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+let cropper;
+let originalFileInput;
+
+function handleImageSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.match('image.*')) {
+        alert('Please select an image file.');
+        return;
+    }
+    
+    originalFileInput = event.target;
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        const image = document.getElementById('imageToCrop');
+        image.src = e.target.result;
+        
+        // Show modal
+        document.getElementById('cropModal').classList.remove('hidden');
+        
+        // Initialize cropper
+        if (cropper) {
+            cropper.destroy();
+        }
+        
+        cropper = new Cropper(image, {
+            aspectRatio: 1,
+            viewMode: 1,
+            dragMode: 'move',
+            autoCropArea: 0.8,
+            restore: false,
+            guides: true,
+            center: true,
+            highlight: false,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+            toggleDragModeOnDblclick: false,
+            ready: function() {
+                // Update preview
+                updatePreview();
+            },
+            crop: function() {
+                updatePreview();
+            }
+        });
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+function updatePreview() {
+    if (!cropper) return;
+    
+    const canvas = cropper.getCroppedCanvas({
+        width: 200,
+        height: 200,
+    });
+    
+    const preview = document.getElementById('imagePreview');
+    preview.src = canvas.toDataURL('image/jpeg', 0.9);
+}
+
+function cancelCrop() {
+    document.getElementById('cropModal').classList.add('hidden');
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+    if (originalFileInput) {
+        originalFileInput.value = '';
+    }
+}
+
+function applyCrop() {
+    if (!cropper) return;
+    
+    const canvas = cropper.getCroppedCanvas({
+        width: 400,
+        height: 400,
+    });
+    
+    // Convert canvas to blob
+    canvas.toBlob(function(blob) {
+        // Create a new File object from the blob
+        const file = new File([blob], 'profile_picture.jpg', { type: 'image/jpeg' });
+        
+        // Create a new FileList-like object
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        
+        // Update the file input
+        originalFileInput.files = dataTransfer.files;
+        
+        // Update preview
+        const preview = document.getElementById('imagePreview');
+        if (document.getElementById('currentProfilePic')) {
+            document.getElementById('currentProfilePic').src = preview.src;
+        }
+        
+        // Hide modal
+        document.getElementById('cropModal').classList.add('hidden');
+        
+        // Clean up
+        cropper.destroy();
+        cropper = null;
+    }, 'image/jpeg', 0.9);
+}
+</script>
+{% endblock %}

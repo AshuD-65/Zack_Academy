@@ -1,0 +1,292 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ course.course_name }} - Zack Academy{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Course Header -->
+    <div class="mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ course.course_name }}</h1>
+                <p class="text-lg text-gray-600">{{ course.course_code }}</p>
+            </div>
+            {% if is_enrolled %}
+                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    Enrolled
+                </span>
+            {% else %}
+                <a href="{% url 'payment_checkout' %}?course_code={{ course.course_code }}&amount_dollars={{ course.price }}" class="btn-primary">
+                    Enroll Now - ${{ course.price }}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Course Information -->
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-4">Course Information</h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Instructor</p>
+                        <p class="font-semibold">{{ course.instructor }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Credits</p>
+                        <p class="font-semibold">{{ course.credits }} Credits</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Schedule</p>
+                        <p class="font-semibold">{{ course.schedule }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Duration</p>
+                        <p class="font-semibold">{{ course.duration_weeks }} Weeks</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Price</p>
+                        <p class="font-semibold text-primary-600">${{ course.price }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Enrolled Students</p>
+                        <p class="font-semibold">{{ enrolled_students_count }} Students</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h3 class="font-semibold mb-2">Course Description</h3>
+                    <p class="text-gray-700">
+                        This comprehensive course covers all essential topics in {{ course.course_name }}. 
+                        Students will gain practical knowledge and skills through interactive materials, 
+                        hands-on exercises, and real-world applications. The course is designed to be 
+                        completed over {{ course.duration_weeks }} weeks with {{ course.credits }} credit hours.
+                    </p>
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h3 class="font-semibold mb-3">Learning Objectives</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-start">
+                            <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="text-gray-700">Master fundamental concepts and principles</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="text-gray-700">Apply theoretical knowledge to practical scenarios</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="text-gray-700">Develop critical thinking and problem-solving skills</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="text-gray-700">Complete hands-on projects and assignments</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Course Materials (Lessons & Assignments) - Only visible to enrolled students -->
+            {% if is_enrolled and materials %}
+            <div class="card">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold">Course Materials</h2>
+                    {% if important_materials %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        {{ important_materials.count }} Important
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="border-b border-gray-200 mb-6">
+                    <nav class="-mb-px flex space-x-8">
+                        <button onclick="showTab('lessons')" id="tab-lessons" class="tab-button border-b-2 border-primary-500 text-primary-600 py-4 px-1 text-sm font-medium">
+                            Lessons ({{ lessons.count }})
+                        </button>
+                        <button onclick="showTab('assignments')" id="tab-assignments" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-sm font-medium">
+                            Assignments ({{ assignments.count }})
+                        </button>
+                    </nav>
+                </div>
+
+                <div id="content-lessons" class="tab-content">
+                    {% if lessons %}
+                    <div class="space-y-4">
+                        {% for m in lessons %}
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h3 class="font-semibold text-lg">{{ m.title }}</h3>
+                                    {% if m.is_important %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 mt-1">Important</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if m.description %}<p class="text-gray-600 mb-3">{{ m.description }}</p>{% endif %}
+                            <div class="flex flex-wrap gap-2">
+                                {% if m.external_url %}
+                                    <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{{ m.external_url }}', true)" class="btn-primary text-sm">Open</button>
+                                {% elif m.file %}
+                                    <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{% url 'view_file' m.file.name %}?course_code={{ course.course_code }}', true)" class="btn-primary text-sm">View</button>
+                                    <a href="{{ m.file.url }}" download class="btn-outline text-sm">Download</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                        <p class="text-gray-600">No lessons yet.</p>
+                    {% endif %}
+                </div>
+
+                <div id="content-assignments" class="tab-content hidden">
+                    {% if assignments %}
+                    <div class="space-y-4">
+                        {% for m in assignments %}
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h3 class="font-semibold text-lg">{{ m.title }}</h3>
+                                    {% if m.is_important %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 mt-1">Important</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if m.description %}<p class="text-gray-600 mb-3">{{ m.description }}</p>{% endif %}
+                            <div class="flex flex-wrap gap-2 items-center">
+                                {% if m.external_url %}
+                                    <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{{ m.external_url }}', true)" class="btn-primary text-sm">Open</button>
+                                {% elif m.file %}
+                                    <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{% url 'view_file' m.file.name %}?course_code={{ course.course_code }}', true)" class="btn-primary text-sm">View</button>
+                                    <a href="{{ m.file.url }}" download class="btn-outline text-sm">Download</a>
+                                {% endif %}
+                                {% if m.material_id in submissions_by_material %}
+                                <span class="text-sm text-green-600 font-medium">✓ Submitted</span>
+                                <a href="{% url 'submit_assignment' course.course_code m.material_id %}" class="text-sm text-primary-600 hover:text-primary-700">Resubmit</a>
+                                {% else %}
+                                <a href="{% url 'submit_assignment' course.course_code m.material_id %}" class="btn-primary text-sm">Submit Assignment</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                        <p class="text-gray-600">No assignments yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% elif not is_enrolled %}
+            <div class="card">
+                <div class="text-center py-8">
+                    <p class="text-gray-600 mb-4">You must enroll in this course to access lessons and assignments.</p>
+                    <a href="{% url 'payment_checkout' %}?course_code={{ course.course_code }}&amount_dollars={{ course.price }}" class="btn-primary">Enroll Now - ${{ course.price }}</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1">
+            <div class="card sticky top-20">
+                <h3 class="font-semibold mb-4">Quick Info</h3>
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-sm text-gray-600">Status</p>
+                        {% if completion %}
+                        <p class="font-semibold">{{ completion.status }}</p>
+                        <div class="mt-2">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>Progress</span>
+                                <span>{{ completion.progress_percent }}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-primary-600 h-2 rounded-full" style="width: {{ completion.progress_percent }}%"></div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="font-semibold">Not Enrolled</p>
+                        {% endif %}
+                    </div>
+                    {% if is_enrolled and course_has_exam %}
+                    <div class="pt-4 border-t border-gray-200">
+                        <a href="{% url 'student_take_exam' course.course_code %}" class="block w-full btn-primary text-sm text-center py-2">
+                            Take Exam
+                        </a>
+                        <p class="text-xs text-gray-500 mt-1">Pass the exam to qualify for certificate</p>
+                    </div>
+                    {% endif %}
+                    <div class="pt-4 border-t border-gray-200">
+                        <a href="{% url 'course_list' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                            ← Back to Courses
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Video Modal -->
+<div id="videoModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-hidden">
+        <div class="flex justify-between items-center p-4 border-b border-gray-200">
+            <h3 id="videoModalTitle" class="text-lg font-semibold">Video Player</h3>
+            <button onclick="closeVideoModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="p-4">
+            <div class="aspect-video bg-black rounded-lg overflow-hidden">
+                <iframe id="videoPlayer" src="" class="w-full h-full" allowfullscreen></iframe>
+            </div>
+            <div id="videoTimer" class="mt-4 text-center text-sm text-gray-600"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+  document.querySelectorAll('.tab-button').forEach(button => {
+    button.classList.remove('active', 'border-primary-500', 'text-primary-600');
+    button.classList.add('border-transparent', 'text-gray-500');
+  });
+  document.getElementById('content-' + tabName).classList.remove('hidden');
+  const activeTab = document.getElementById('tab-' + tabName);
+  activeTab.classList.add('active', 'border-primary-500', 'text-primary-600');
+  activeTab.classList.remove('border-transparent', 'text-gray-500');
+}
+
+function markAndOpen(materialId, courseCode, url, newTab) {
+  fetch('{% url 'track_material_view' %}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({ material_id: materialId, course_code: courseCode })
+  }).finally(() => {
+    if (newTab) window.open(url, '_blank');
+    else window.location.href = url;
+  });
+}
+
+// Select initial tab from URL (?tab=lessons|assignments)
+(() => {
+  const tab = new URLSearchParams(window.location.search).get('tab');
+  if (tab === 'assignments') showTab('assignments');
+  else showTab('lessons');
+})();
+</script>
+{% endblock %}

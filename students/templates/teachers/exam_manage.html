@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Exam - {{ course.course_code }} - Zack Academy{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="{% url 'teacher_course_detail' course.course_code %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium">← Back to Course</a>
+    </div>
+    
+    <div class="card">
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">Exam Management</h1>
+        <p class="text-gray-600 mb-2">{{ course.course_name }} ({{ course.course_code }})</p>
+        <p class="text-sm text-gray-500 mb-6">System automatically generates and grades exam questions</p>
+
+        {% if exam %}
+        <!-- Exam Status -->
+        <div class="mb-6 p-4 rounded-lg {% if exam.is_released %}bg-green-50 border border-green-200{% else %}bg-yellow-50 border border-yellow-200{% endif %}">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-semibold text-gray-900">{{ exam.title }}</h3>
+                    <p class="text-sm text-gray-600 mt-1">
+                        Status: <span class="font-medium {% if exam.is_released %}text-green-700{% else %}text-yellow-700{% endif %}">
+                            {% if exam.is_released %}Released (Students can take exam){% else %}Not Released (Students cannot take exam){% endif %}
+                        </span>
+                    </p>
+                </div>
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="toggle_release">
+                    <button type="submit" class="{% if exam.is_released %}btn-outline{% else %}btn-primary{% endif %}">
+                        {% if exam.is_released %}Unrelease Exam{% else %}Release Exam{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Exam Settings -->
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h3 class="font-semibold text-gray-900 mb-3">Exam Settings</h3>
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_exam">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Exam Title</label>
+                        <input type="text" name="title" value="{{ exam.title }}" class="input-field w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Passing Score (%)</label>
+                        <input type="number" name="passing_score" value="{{ exam.passing_score }}" min="0" max="100" class="input-field w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Number of Questions</label>
+                        <input type="number" name="num_questions" value="{{ exam.num_questions }}" min="5" max="100" class="input-field w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Time Limit (minutes)</label>
+                        <input type="number" name="time_limit_minutes" value="{{ exam.time_limit_minutes }}" min="10" max="180" class="input-field w-full">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">Update Settings</button>
+            </form>
+        </div>
+
+        <!-- Statistics -->
+        <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h3 class="font-semibold text-gray-900 mb-2">Exam Statistics</h3>
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div>
+                    <p class="text-2xl font-bold text-blue-600">{{ questions|length }}</p>
+                    <p class="text-sm text-gray-600">Questions</p>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-blue-600">{{ attempts_count }}</p>
+                    <p class="text-sm text-gray-600">Attempts</p>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-blue-600">{{ pass_rate }}%</p>
+                    <p class="text-sm text-gray-600">Pass Rate</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auto-Generated Questions -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold text-gray-900">Auto-Generated Questions ({{ questions|length }})</h3>
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="regenerate_questions">
+                    <button type="submit" class="btn-outline text-sm" onclick="return confirm('This will delete all existing questions and generate new ones. Continue?')">
+                        🔄 Regenerate Questions
+                    </button>
+                </form>
+            </div>
+            
+            {% if questions %}
+            <div class="space-y-3">
+                {% for q in questions %}
+                <div class="p-4 bg-white border border-gray-200 rounded-lg">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-900">{{ forloop.counter }}. {{ q.question_text }}</p>
+                            <div class="mt-2 text-sm text-gray-600">
+                                <span class="inline-block px-2 py-1 bg-gray-100 rounded mr-2">{{ q.get_question_type_display }}</span>
+                                {% if q.options_json %}
+                                <span class="text-gray-500">Options: {{ q.options_json|length }}</span>
+                                {% endif %}
+                            </div>
+                            <p class="mt-1 text-sm text-green-600">✓ Correct Answer: {{ q.correct_answer }}</p>
+                            {% if q.source_material %}
+                            <p class="mt-1 text-xs text-gray-500">Generated from: {{ q.source_material.title }}</p>
+                            {% endif %}
+                        </div>
+                        <span class="text-sm text-gray-500">{{ q.points }} pt{{ q.points|pluralize }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-600 text-center py-8">No questions generated yet. Click "Regenerate Questions" to create them.</p>
+            {% endif %}
+        </div>
+
+        <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h4 class="font-semibold text-gray-900 mb-2">ℹ️ How It Works</h4>
+            <ul class="text-sm text-gray-600 space-y-1 list-disc list-inside">
+                <li>System automatically generates questions from course materials</li>
+                <li>Questions are auto-graded when students submit</li>
+                <li>You only need to set the passing score and release the exam</li>
+                <li>Click "Regenerate Questions" to create new questions anytime</li>
+                <li>Students can only take the exam when it's released</li>
+            </ul>
+        </div>
+
+        {% else %}
+        <!-- Create Exam -->
+        <h3 class="font-semibold mb-4">Create Exam</h3>
+        <p class="text-gray-600 mb-4">Create an automated exam for this course. The system will generate questions from your course materials.</p>
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_exam">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Exam Title</label>
+                    <input type="text" name="title" value="Final Exam" class="input-field w-full">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Passing Score (%)</label>
+                    <input type="number" name="passing_score" value="70" min="0" max="100" class="input-field w-full">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Number of Questions</label>
+                    <input type="number" name="num_questions" value="10" min="5" max="100" class="input-field w-full">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Time Limit (minutes)</label>
+                    <input type="number" name="time_limit_minutes" value="60" min="10" max="180" class="input-field w-full">
+                </div>
+            </div>
+            <button type="submit" class="btn-primary">Create Exam & Generate Questions</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
