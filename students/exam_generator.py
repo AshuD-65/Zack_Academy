@@ -131,7 +131,7 @@ class ExamQuestionGenerator:
         course_category = cls._categorize_course(course)
 
         # Generate questions from materials
-        material_questions = cls._generate_from_materials(materials, num_questions // 2)
+        material_questions = cls._generate_from_materials(materials, num_questions)
         questions.extend(material_questions)
 
         # Fill remaining with generic questions
@@ -296,10 +296,7 @@ class ExamQuestionGenerator:
     def _extract_material_text(cls, material) -> str:
         """Extract raw text from metadata and supported file types."""
         parts = []
-        title = getattr(material, "title", "") or ""
         description = getattr(material, "description", "") or ""
-        if title:
-            parts.append(title)
         if description:
             parts.append(description)
 
@@ -486,18 +483,32 @@ class ExamQuestionGenerator:
         attempt = 0
         while len(questions) < needed and attempt < needed * 5:
             mat = mat_cycle[idx % len(mat_cycle)]
-            title = getattr(mat, 'title', 'Untitled')
+            source_text = cls._extract_material_text(mat)
+            base_terms = cls._extract_keywords(source_text)
+            topic = max(base_terms, key=len) if base_terms else "the lesson content"
+            topic2 = base_terms[1] if len(base_terms) > 1 else "related concepts"
+            purpose = base_terms[2] if len(base_terms) > 2 else "practical learning"
 
             # choose a template and format it
             tpl = random.choice(templates)
-            q_text = tpl.replace('{topic}', title).replace('{statement}', title)
+            q_text = (
+                tpl.replace('{topic}', topic)
+                .replace('{topic1}', topic)
+                .replace('{topic2}', topic2)
+                .replace('{purpose}', purpose)
+                .replace('{statement}', topic)
+            )
 
             # Create either multiple choice or true/false variant
             if random.random() < 0.7:
                 # multiple choice: create options by slicing title words and adding distractors
-                words = title.split()
-                correct = words[0] if words else 'Topic A'
-                options = [correct, 'Distractor B', 'Distractor C', 'Distractor D']
+                pool = cls._extract_keywords(source_text)
+                correct = max(pool, key=len) if pool else 'Concept A'
+                distractor_pool = [w for w in pool if w != correct]
+                random.shuffle(distractor_pool)
+                options = [correct] + distractor_pool[:3]
+                while len(options) < 4:
+                    options.append(f"Distractor {len(options)}")
                 q = {'question': q_text, 'type': 'MULTIPLE_CHOICE', 'options': options, 'answer': 'A', 'material': mat}
             else:
                 q = {'question': q_text, 'type': 'TRUE_FALSE', 'options': ['True', 'False'], 'answer': 'True', 'material': mat}
