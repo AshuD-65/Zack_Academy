@@ -3,11 +3,19 @@ Automatic exam question generator.
 Generates questions from course materials automatically.
 """
 
+import io
 import random
 import re
-from typing import List, Dict
+from typing import List, Dict, Optional
 from collections import defaultdict
+from django.core.files.storage import default_storage
+
 from .models import Exam, ExamQuestion, CourseMaterial
+
+try:
+    from pypdf import PdfReader
+except Exception:
+    PdfReader = None
 
 
 class ExamQuestionGenerator:
@@ -238,42 +246,167 @@ class ExamQuestionGenerator:
 
     @classmethod
     def _generate_from_materials(cls, materials, count: int) -> List[Dict]:
-        """Generate questions based on course materials."""
+        """Generate questions based on course material text content."""
         questions = []
+        material_sentences = cls._collect_material_sentences(materials)
+        if not material_sentences:
+            return questions
 
-        for material in materials:
+        # Build a global keyword pool for better distractors in MCQ questions.
+        global_keywords = cls._extract_keywords(" ".join(s for _, s in material_sentences))
+
+        for material, sentence in material_sentences:
             if len(questions) >= count:
                 break
 
-            # Generate question based on material title and type
-            title = getattr(material, 'title', 'Untitled')
+            # True/False from direct statement in the material.
+            questions.append({
+                'question': sentence,
+                'type': 'TRUE_FALSE',
+                'options': ['True', 'False'],
+                'answer': 'True',
+                'material': material
+            })
 
-            # Multiple choice question
-            if len(questions) < count:
-                questions.append({
-                    'question': f'What topic is covered in "{title}"?',
-                    'type': 'MULTIPLE_CHOICE',
-                    'options': [
-                        title.split()[0] if title.split() else 'Topic A',
-                        'Unrelated Topic B',
-                        'Unrelated Topic C',
-                        'Unrelated Topic D'
-                    ],
-                    'answer': 'A',
-                    'material': material
-                })
+            if len(questions) >= count:
+                break
 
-            # True/False question
-            if len(questions) < count:
-                questions.append({
-                    'question': f'The course material "{title}" is relevant to this course.',
-                    'type': 'TRUE_FALSE',
-                    'options': ['True', 'False'],
-                    'answer': 'True',
-                    'material': material
-                })
+            mcq = cls._build_mcq_from_sentence(sentence, global_keywords)
+            if mcq:
+                mcq['material'] = material
+                questions.append(mcq)
 
         return questions
+
+    @classmethod
+    def _collect_material_sentences(cls, materials) -> List[tuple]:
+        """Extract normalized sentences from material title/description/files."""
+        collected = []
+        for material in materials:
+            text = cls._extract_material_text(material)
+            for sentence in cls._split_sentences(text):
+                # Keep only meaningful content sentences.
+                if len(sentence) < 35:
+                    continue
+                collected.append((material, sentence))
+        return collected
+
+    @classmethod
+    def _extract_material_text(cls, material) -> str:
+        """Extract raw text from metadata and supported file types."""
+        parts = []
+        title = getattr(material, "title", "") or ""
+        description = getattr(material, "description", "") or ""
+        if title:
+            parts.append(title)
+        if description:
+            parts.append(description)
+
+        file_field = getattr(material, "file", None)
+        if file_field and getattr(file_field, "name", None):
+            file_name = file_field.name.lower()
+            extracted = cls._extract_text_from_file(file_field.name, file_name)
+            if extracted:
+                parts.append(extracted)
+
+        return "\n".join(parts).strip()
+
+    @classmethod
+    def _extract_text_from_file(cls, storage_path: str, file_name: str) -> str:
+        """Extract text from supported file formats stored in Django storage."""
+        try:
+            with default_storage.open(storage_path, "rb") as fh:
+                raw = fh.read()
+        except Exception:
+            return ""
+
+        # PDF parsing (best-effort).
+        if file_name.endswith(".pdf") and PdfReader:
+            try:
+                reader = PdfReader(io.BytesIO(raw))
+                pages = []
+                for page in reader.pages[:30]:
+                    txt = page.extract_text() or ""
+                    if txt.strip():
+                        pages.append(txt)
+                return "\n".join(pages).strip()
+            except Exception:
+                return ""
+
+        # Plain-text style files.
+        if file_name.endswith((".txt", ".md", ".csv", ".json", ".xml", ".html")):
+            for enc in ("utf-8", "latin-1"):
+                try:
+                    return raw.decode(enc, errors="ignore")
+                except Exception:
+                    continue
+        return ""
+
+    @classmethod
+    def _split_sentences(cls, text: str) -> List[str]:
+        if not text:
+            return []
+        normalized = re.sub(r"\s+", " ", text).strip()
+        if not normalized:
+            return []
+        candidates = re.split(r"(?<=[.!?])\s+", normalized)
+        return [c.strip(" -\n\r\t") for c in candidates if c and c.strip()]
+
+    @classmethod
+    def _extract_keywords(cls, text: str) -> List[str]:
+        words = re.findall(r"[A-Za-z][A-Za-z0-9_-]{3,}", (text or "").lower())
+        stop = {
+            "this", "that", "with", "from", "have", "will", "your", "their", "about", "into",
+            "there", "which", "when", "where", "while", "what", "course", "material", "using",
+            "used", "should", "could", "would", "were", "been", "being", "also", "only",
+        }
+        filtered = [w for w in words if w not in stop]
+        # Preserve order while de-duplicating.
+        seen = set()
+        unique = []
+        for w in filtered:
+            if w in seen:
+                continue
+            seen.add(w)
+            unique.append(w)
+        return unique
+
+    @classmethod
+    def _build_mcq_from_sentence(cls, sentence: str, keyword_pool: List[str]) -> Optional[Dict]:
+        """Create one MCQ by masking a key term from a sentence."""
+        keywords = cls._extract_keywords(sentence)
+        if not keywords:
+            return None
+
+        correct = max(keywords, key=len)
+        masked_sentence = re.sub(
+            rf"\b{re.escape(correct)}\b",
+            "______",
+            sentence,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+        if "______" not in masked_sentence:
+            return None
+
+        distractors = [w for w in keyword_pool if w != correct]
+        random.shuffle(distractors)
+        options = [correct] + distractors[:3]
+
+        # Ensure 4 options, even with sparse material text.
+        while len(options) < 4:
+            options.append(f"option_{len(options)+1}")
+
+        random.shuffle(options)
+        correct_index = options.index(correct)
+        correct_letter = chr(ord("A") + correct_index)
+
+        return {
+            "question": f'According to the course material, which word best completes: "{masked_sentence}"',
+            "type": "MULTIPLE_CHOICE",
+            "options": options,
+            "answer": correct_letter,
+        }
 
     @classmethod
     def _generate_generic_questions(cls, category: str, count: int) -> List[Dict]:

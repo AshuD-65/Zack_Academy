@@ -7,6 +7,7 @@ from pathlib import Path
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
+from .exam_generator import regenerate_exam_questions
 from .models import Course, CourseMaterial, Exam, ExamAnswer, ExamQuestion, Student
 
 
@@ -124,3 +125,32 @@ class FilePathSecurityTests(TestCase):
             response = self.client.get(reverse('serve_file', kwargs={'file_path': 'safe.txt'}))
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.content, b'safe')
+
+
+class ExamGenerationContentTests(TestCase):
+    def test_exam_questions_include_material_content(self):
+        course = Course.objects.create(
+            course_code='ML100',
+            course_name='Machine Learning Fundamentals',
+            credits=3,
+            instructor='Instructor',
+            price=Decimal('2.00'),
+            is_approved=True,
+            duration_weeks=8,
+        )
+        material = CourseMaterial.objects.create(
+            course=course,
+            title='Intro to ML',
+            description='Gradient descent minimizes the loss function by iteratively updating model parameters.',
+            material_type=CourseMaterial.MATERIAL_TYPE_PDF,
+            kind=CourseMaterial.KIND_LESSON,
+            is_visible=True,
+        )
+        exam = Exam.objects.create(course=course, num_questions=4, is_released=False)
+        regenerate_exam_questions(exam)
+        questions = ExamQuestion.objects.filter(exam=exam)
+
+        self.assertGreaterEqual(questions.count(), 1)
+        self.assertTrue(questions.filter(source_material=material).exists())
+        joined_text = " ".join(questions.values_list('question_text', flat=True)).lower()
+        self.assertIn('gradient', joined_text)
