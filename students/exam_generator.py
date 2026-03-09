@@ -20,6 +20,7 @@ except Exception:
 
 class ExamQuestionGenerator:
     """Generates exam questions automatically from course materials."""
+    MAX_TEXT_EXTRACT_SIZE = 8 * 1024 * 1024  # 8MB safety limit
 
     # Sample question templates for different topics
     QUESTION_TEMPLATES = {
@@ -314,6 +315,20 @@ class ExamQuestionGenerator:
     @classmethod
     def _extract_text_from_file(cls, storage_path: str, file_name: str) -> str:
         """Extract text from supported file formats stored in Django storage."""
+        is_pdf = file_name.endswith(".pdf")
+        is_text_like = file_name.endswith((".txt", ".md", ".csv", ".json", ".xml", ".html"))
+        if not (is_pdf or is_text_like):
+            # Skip binary/unsupported files (video/audio/images/docs) for stability.
+            return ""
+
+        try:
+            file_size = default_storage.size(storage_path)
+            if file_size and file_size > cls.MAX_TEXT_EXTRACT_SIZE:
+                # Avoid loading very large files in request cycle.
+                return ""
+        except Exception:
+            pass
+
         try:
             with default_storage.open(storage_path, "rb") as fh:
                 raw = fh.read()
@@ -321,7 +336,7 @@ class ExamQuestionGenerator:
             return ""
 
         # PDF parsing (best-effort).
-        if file_name.endswith(".pdf") and PdfReader:
+        if is_pdf and PdfReader:
             try:
                 reader = PdfReader(io.BytesIO(raw))
                 pages = []
@@ -334,7 +349,7 @@ class ExamQuestionGenerator:
                 return ""
 
         # Plain-text style files.
-        if file_name.endswith((".txt", ".md", ".csv", ".json", ".xml", ".html")):
+        if is_text_like:
             for enc in ("utf-8", "latin-1"):
                 try:
                     return raw.decode(enc, errors="ignore")
