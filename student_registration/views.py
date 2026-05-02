@@ -199,12 +199,11 @@ def _send_staff_id_invitation_email(invitation):
             settings.DEFAULT_FROM_EMAIL,
             [invitation.email],
             fail_silently=False,
-            timeout=settings.EMAIL_TIMEOUT,
         )
         return True
-    except (Exception, SystemExit):
+    except Exception:
         logging.getLogger(__name__).exception(
-            'Failed to send Staff ID invitation email to %s', invitation.email
+            'Failed to send staff ID invitation email to %s', invitation.email
         )
         return False
 

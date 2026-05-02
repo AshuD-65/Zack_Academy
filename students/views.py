@@ -1243,7 +1243,6 @@ def forgot_password(request):
                         [email],
                         html_message=html_message,
                         fail_silently=False,
-                        timeout=settings.EMAIL_TIMEOUT,
                     )
                     
                     return render(request, 'students/forgot_password_success.html', {
