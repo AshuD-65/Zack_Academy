@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.http import HttpResponse, Http404, HttpResponseRedirect
 from django.views.decorators.http import require_http_methods
 from django.shortcuts import render
@@ -18,6 +19,11 @@ OFFICE_VIEWER_EXTENSIONS = {'.docx', '.doc', '.pptx', '.ppt', '.xlsx', '.xls'}
 def _validate_file_path(file_path: str) -> str:
     """Validate user-provided media path and block path traversal."""
     normalized = file_path.replace("\\", "/").lstrip("/")
+
+    media_prefix = settings.MEDIA_URL.lstrip("/")
+    if normalized.startswith(media_prefix):
+        normalized = normalized[len(media_prefix):].lstrip("/")
+
     if ".." in Path(normalized).parts:
         raise Http404("Invalid path")
     return normalized
