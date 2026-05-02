@@ -61,6 +61,32 @@ def _get_local_storage_path(storage_path: str) -> str | None:
         return None
 
 
+def _find_alternative_storage_path(storage_path: str) -> str | None:
+    local_path = _get_local_storage_path(storage_path)
+    if not local_path:
+        return None
+    if os.path.exists(local_path):
+        return storage_path
+    directory = os.path.dirname(local_path)
+    if not os.path.isdir(directory):
+        return None
+
+    requested_name = os.path.basename(local_path)
+    base_name, ext = os.path.splitext(requested_name)
+    matches = []
+    for candidate_name in os.listdir(directory):
+        if candidate_name == requested_name:
+            continue
+        if not candidate_name.lower().endswith(ext.lower()):
+            continue
+        if candidate_name.startswith(base_name) or base_name.startswith(candidate_name):
+            matches.append(candidate_name)
+
+    if len(matches) == 1:
+        return os.path.relpath(os.path.join(directory, matches[0]), settings.MEDIA_ROOT).replace(os.sep, '/')
+    return None
+
+
 def _preview_cache_path(storage_path: str) -> str:
     source = Path(storage_path)
     return str(Path("generated_previews") / source.with_suffix(".pdf"))
@@ -124,7 +150,11 @@ def serve_file_view(request, file_path):
     """
     storage_path = _validate_file_path(file_path)
     if not default_storage.exists(storage_path):
-        raise Http404("File not found")
+        alternative = _find_alternative_storage_path(storage_path)
+        if alternative and default_storage.exists(alternative):
+            storage_path = alternative
+        else:
+            raise Http404("File not found")
 
     file_name = Path(storage_path).name
     file_extension = Path(storage_path).suffix.lower()
@@ -214,7 +244,11 @@ def view_file(request, file_path):
     """
     storage_path = _validate_file_path(file_path)
     if not default_storage.exists(storage_path):
-        raise Http404("File not found")
+        alternative = _find_alternative_storage_path(storage_path)
+        if alternative and default_storage.exists(alternative):
+            storage_path = alternative
+        else:
+            raise Http404("File not found")
 
     file_name = Path(storage_path).name
     file_extension = Path(storage_path).suffix.lower()

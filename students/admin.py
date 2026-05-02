@@ -1,4 +1,6 @@
-from django.contrib import admin
+import logging
+
+from django.contrib import admin, messages
 from django import forms
 from django.contrib.auth.hashers import make_password
 from django.core.mail import send_mail
@@ -132,8 +134,12 @@ def _send_staff_id_invitation_email(invitation):
             [invitation.email],
             fail_silently=False,
         )
+        return True
     except Exception:
-        pass
+        logging.getLogger(__name__).exception(
+            'Failed to send staff ID invitation email to %s', invitation.email
+        )
+        return False
 
 
 def _send_staff_id_email(teacher):
@@ -157,8 +163,12 @@ def _send_staff_id_email(teacher):
             [teacher.email],
             fail_silently=False,
         )
+        return True
     except Exception:
-        pass  # Don't block admin save; log if you have logging
+        logging.getLogger(__name__).exception(
+            'Failed to send teacher notification email to %s', teacher.email
+        )
+        return False
 
 
 @admin.register(StaffIDInvitation)
@@ -208,7 +218,12 @@ class TeacherAdmin(admin.ModelAdmin):
             obj.staff_id = _generate_staff_id()
         super().save_model(request, obj, form, change)
         if is_new and obj.email:
-            _send_staff_id_email(obj)
+            sent = _send_staff_id_email(obj)
+            if not sent:
+                messages.error(
+                    request,
+                    'Teacher notification email failed to send. Check email settings.',
+                )
 
 
 class CourseMaterialAdminForm(forms.ModelForm):

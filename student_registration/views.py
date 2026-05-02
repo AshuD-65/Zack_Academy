@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.contrib import messages
 from django.db.models import Count
 from django.contrib.auth import get_user_model
-
+import logging
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
@@ -200,8 +200,12 @@ def _send_staff_id_invitation_email(invitation):
             [invitation.email],
             fail_silently=False,
         )
+        return True
     except Exception:
-        pass
+        logging.getLogger(__name__).exception(
+            'Failed to send Staff ID invitation email to %s', invitation.email
+        )
+        return False
 
 
 @staff_member_required
@@ -259,11 +263,17 @@ def admin_staff_ids(request):
                 messages.error(request, f'Staff ID {staff_id} is already in use.')
             else:
                 inv = StaffIDInvitation.objects.create(staff_id=staff_id, email=email)
-                inv.sent_at = timezone.now()
-                inv.save()
-                _send_staff_id_invitation_email(inv)
-                messages.success(request, f'Staff ID {staff_id} sent to {email}.')
-                return redirect('admin_staff_ids')
+                sent = _send_staff_id_invitation_email(inv)
+                if sent:
+                    inv.sent_at = timezone.now()
+                    inv.save(update_fields=['sent_at'])
+                    messages.success(request, f'Staff ID {staff_id} sent to {email}.')
+                    return redirect('admin_staff_ids')
+                else:
+                    messages.error(
+                        request,
+                        'Failed to send Staff ID email. Verify SMTP settings and redeploy.',
+                    )
     return render(request, 'admin/staff_ids.html', {'recent_invitations': recent_invitations})
 
 
