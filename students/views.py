@@ -1243,14 +1243,17 @@ def forgot_password(request):
                         [email],
                         html_message=html_message,
                         fail_silently=False,
+                        timeout=settings.EMAIL_TIMEOUT,
                     )
                     
                     return render(request, 'students/forgot_password_success.html', {
                         'email': email
                     })
-                except Exception as e:
+                except (Exception, SystemExit):
                     # Log the error for diagnostics; still show success for security
-                    logging.getLogger(__name__).exception("Password reset email failed to send")
+                    logging.getLogger(__name__).exception(
+                        'Password reset email failed to send for %s', email
+                    )
                     return render(request, 'students/forgot_password_success.html', {
                         'email': email
                     })
