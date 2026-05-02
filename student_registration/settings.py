@@ -225,10 +225,11 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 # Email settings (Gmail via environment variables; falls back to console if unset)
 # Set the following environment variables for real email delivery:
 #   EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
-# Optional overrides: EMAIL_HOST (default: smtp.gmail.com), EMAIL_PORT (default: 587), EMAIL_USE_TLS (default: True), DEFAULT_FROM_EMAIL
+# Optional overrides: EMAIL_HOST (default: smtp.gmail.com), EMAIL_PORT (default: 587), EMAIL_USE_TLS (default: True), EMAIL_USE_SSL (default: False), DEFAULT_FROM_EMAIL
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ['1', 'true', 'yes']
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() in ['1', 'true', 'yes']
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND')

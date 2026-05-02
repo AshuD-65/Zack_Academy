@@ -201,9 +201,12 @@ def _send_staff_id_invitation_email(invitation):
             fail_silently=False,
         )
         return True
-    except Exception:
+    except Exception as exc:
         logging.getLogger(__name__).exception(
-            'Failed to send staff ID invitation email to %s', invitation.email
+            'Failed to send staff ID invitation email to %s via %s:%s',
+            invitation.email,
+            settings.EMAIL_HOST,
+            settings.EMAIL_PORT,
         )
         return False
 
