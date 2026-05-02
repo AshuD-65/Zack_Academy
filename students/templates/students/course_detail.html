@@ -98,6 +98,30 @@
                 </div>
             </div>
 
+            <!-- Main Course File -->
+            {% if is_enrolled and course.main_file %}
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-4">Main Course File</h2>
+                <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-white dark:bg-slate-900">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 0 01.707.293l5.414 5.414a1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <div>
+                                <h3 class="font-semibold">{{ course.main_file.name }}</h3>
+                                <p class="text-sm text-gray-600">Course Document</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="{% url 'view_file' course.main_file.name %}?course_code={{ course.course_code }}" target="_blank" class="btn-primary text-sm">View</a>
+                            <a href="{{ course.main_file.url }}" download class="btn-outline text-sm">Download</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Course Materials (Lessons & Assignments) - Only visible to enrolled students -->
             {% if is_enrolled and materials %}
             <div class="card">
@@ -175,6 +199,18 @@
                                 {% if m.material_id in submissions_by_material %}
                                 <span class="text-sm text-green-600 font-medium">✓ Submitted</span>
                                 <a href="{% url 'submit_assignment' course.course_code m.material_id %}" class="text-sm text-primary-600 hover:text-primary-700">Resubmit</a>
+                                <div class="mt-3 text-sm text-gray-700 space-y-1">
+                                    {% for submission in submissions_by_material.values %}
+                                        {% if submission.material_id == m.material_id %}
+                                            {% if submission.grade is not None %}
+                                                <p><span class="font-semibold">Grade:</span> {{ submission.grade }}</p>
+                                            {% endif %}
+                                            {% if submission.feedback %}
+                                                <p><span class="font-semibold">Feedback:</span> {{ submission.feedback }}</p>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
                                 {% else %}
                                 <a href="{% url 'submit_assignment' course.course_code m.material_id %}" class="btn-primary text-sm">Submit Assignment</a>
                                 {% endif %}

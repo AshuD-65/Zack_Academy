@@ -292,7 +292,7 @@ def admin_all_users(request):
             'name': s.name,
             'email': s.email,
             'detail': f'Major: {s.major}',
-            'profile_picture_url': s.profile_picture.url if s.profile_picture else None,
+            'profile_picture_url': s.profile_picture_url,
         })
     for t in Teacher.objects.all().order_by('teacher_id'):
         all_users.append({
@@ -301,7 +301,7 @@ def admin_all_users(request):
             'name': t.name,
             'email': t.email,
             'detail': f'Staff ID: {t.staff_id or "-"}',
-            'profile_picture_url': t.profile_picture.url if t.profile_picture else None,
+            'profile_picture_url': t.profile_picture_url,
         })
     User = get_user_model()
     for u in User.objects.filter(is_staff=True).order_by('username'):

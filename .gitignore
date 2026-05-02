@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 *.sqlite3
 staticfiles/
+.codex
+render_pre_restore_backup.json
+render_seed_data.json

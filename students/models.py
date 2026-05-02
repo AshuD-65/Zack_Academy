@@ -70,6 +70,15 @@ class Teacher(models.Model):
         help_text="Upload a profile picture (JPG, PNG, GIF)",
     )
 
+    @property
+    def profile_picture_url(self):
+        if self.profile_picture and hasattr(self.profile_picture, 'url'):
+            try:
+                return self.profile_picture.url
+            except Exception:
+                return None
+        return None
+
     def __str__(self):
         return self.name
 
@@ -83,6 +92,15 @@ class Student(models.Model):
     major = models.CharField(max_length=100)
     courses = models.ManyToManyField('Course', related_name='students')
     profile_picture = models.ImageField(upload_to=student_profile_picture_upload_path, blank=True, null=True, help_text="Upload a profile picture (JPG, PNG, GIF)")
+
+    @property
+    def profile_picture_url(self):
+        if self.profile_picture and hasattr(self.profile_picture, 'url'):
+            try:
+                return self.profile_picture.url
+            except Exception:
+                return None
+        return None
 
     def __str__(self):
         return self.name
@@ -109,6 +127,15 @@ class Course(models.Model):
     is_approved = models.BooleanField(default=False, help_text='Only approved courses are visible to students.')
     # Duration in weeks
     duration_weeks = models.PositiveIntegerField(default=12)
+    
+    # Main Course File
+    main_file = models.FileField(
+        upload_to='course_materials/main_files/',
+        storage=raw_media_storage,
+        null=True,
+        blank=True,
+        help_text='Main course document/PDF file'
+    )
 
     def __str__(self):
         return self.course_name

@@ -38,6 +38,42 @@ def _configure_stripe():
     stripe.api_key = _get_stripe_secret_key()
 
 
+def _get_student_from_session(request):
+    student_id = request.session.get("student_id")
+    if not student_id:
+        return None
+    try:
+        return Student.objects.get(student_id=student_id)
+    except Student.DoesNotExist:
+        return None
+
+
+def _get_or_create_stripe_customer(student):
+    """
+    Reuse an existing Stripe customer by email when possible so Checkout can
+    prefill both email and cardholder name from the student's account details.
+    """
+    if not student:
+        return None
+
+    existing = stripe.Customer.list(email=student.email, limit=1).data
+    if existing:
+        customer = existing[0]
+        updates = {}
+        if student.name and customer.get("name") != student.name:
+            updates["name"] = student.name
+        if updates:
+            customer = stripe.Customer.modify(customer["id"], **updates)
+        return customer["id"]
+
+    customer = stripe.Customer.create(
+        email=student.email,
+        name=student.name,
+        metadata={"student_id": student.student_id},
+    )
+    return customer["id"]
+
+
 def checkout(request):
     """Show checkout page with amount and proceed button."""
     course_code = request.GET.get("course_code", "")
@@ -84,6 +120,7 @@ def create_checkout_session(request):
     cancel_url = f"{base_url}{reverse('payment_checkout')}?course_code={course_code}&amount_dollars={amount_dollars:.2f}"
 
     product_name = "Course Enrollment"
+    student = _get_student_from_session(request)
     if course_code:
         try:
             course = Course.objects.get(course_code=course_code)
@@ -93,9 +130,9 @@ def create_checkout_session(request):
 
     try:
         _configure_stripe()
-        session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[
+        session_kwargs = {
+            "payment_method_types": ["card"],
+            "line_items": [
                 {
                     "price_data": {
                         "currency": "usd",
@@ -105,14 +142,31 @@ def create_checkout_session(request):
                     "quantity": 1,
                 }
             ],
-            mode="payment",
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
+            "mode": "payment",
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "metadata": {
                 "course_code": course_code or "",
                 "student_id": str(request.session.get("student_id", "")),
             },
-        )
+        }
+
+        if student:
+            customer_id = _get_or_create_stripe_customer(student)
+            if customer_id:
+                session_kwargs["customer"] = customer_id
+            else:
+                session_kwargs["customer_email"] = student.email
+            session_kwargs["payment_intent_data"] = {
+                "receipt_email": student.email,
+                "metadata": {
+                    "student_id": student.student_id,
+                    "student_name": student.name,
+                    "course_code": course_code or "",
+                },
+            }
+
+        session = stripe.checkout.Session.create(**session_kwargs)
         return redirect(session.url, status=303)
     except Exception as e:
         from django.contrib import messages

@@ -22,8 +22,8 @@
                     <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ t.teacher_id }}</td>
                     <td class="px-4 py-3 text-sm text-gray-900">
                         <div class="flex items-center gap-3">
-                            {% if t.profile_picture %}
-                                <img src="{{ t.profile_picture.url }}" alt="{{ t.name }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+                            {% if t.profile_picture_url %}
+                                <img src="{{ t.profile_picture_url }}" alt="{{ t.name }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
                             {% else %}
                                 <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-bold">
                                     {{ t.name.0|upper }}

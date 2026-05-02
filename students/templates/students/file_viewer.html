@@ -54,7 +54,7 @@
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <a href="{{ file_url }}" class="btn-primary text-sm" download>
+                        <a href="{% url 'serve_file' file_path %}" class="btn-primary text-sm" download>
                             <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
@@ -73,11 +73,35 @@
         
         <!-- File Content -->
         <div id="file-content">
-            {% if is_viewable %}
+            {% if is_office_document and office_viewer_url %}
+                <iframe id="doc-frame" src="{{ office_viewer_url }}">
+                    <p class="text-center p-8">Your browser does not support embedded Office documents.
+                    <a href="{% url 'serve_file' file_path %}" download class="text-primary-600 hover:underline">Download the file</a>.</p>
+                </iframe>
+            {% elif is_office_document and local_preview_path %}
+                <iframe id="doc-frame" src="{% url 'serve_file' local_preview_path %}#view=FitH&zoom=page-width" type="application/pdf">
+                    <p class="text-center p-8">Your browser does not support PDFs.
+                    <a href="{% url 'serve_file' file_path %}" download class="text-primary-600 hover:underline">Download the PowerPoint</a>.</p>
+                </iframe>
+            {% elif is_office_document %}
+                <div class="h-full flex items-center justify-center p-8">
+                    <div class="max-w-2xl w-full bg-blue-50 border border-blue-200 rounded-lg shadow-sm p-6">
+                        <h5 class="font-semibold text-blue-900 mb-2">Preview is not available for this Office file</h5>
+                        <p class="text-blue-800 mb-2">The browser cannot render this Office file directly, and automatic PDF conversion was not available.</p>
+                        <p class="text-blue-800 mb-4">Please download the file and open it with PowerPoint or LibreOffice.</p>
+                        <a href="{% url 'serve_file' file_path %}" class="btn-primary text-sm" download>
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download PowerPoint
+                        </a>
+                    </div>
+                </div>
+            {% elif is_viewable %}
                 {% if file_extension == '.pdf' %}
-                    <iframe id="doc-frame" src="{{ file_url }}#view=FitH&zoom=page-width" type="application/pdf">
+                    <iframe id="doc-frame" src="{% url 'serve_file' file_path %}#view=FitH&zoom=page-width" type="application/pdf">
                         <p class="text-center p-8">Your browser does not support PDFs. 
-                        <a href="{{ file_url }}" download class="text-primary-600 hover:underline">Download the PDF</a>.</p>
+                        <a href="{% url 'serve_file' file_path %}" download class="text-primary-600 hover:underline">Download the PDF</a>.</p>
                     </iframe>
                 {% elif file_extension in '.jpg,.jpeg,.png,.gif,.svg,.webp' %}
                     <div class="h-full flex items-center justify-center p-4 bg-gray-100">

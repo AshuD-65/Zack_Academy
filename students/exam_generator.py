@@ -4,8 +4,12 @@ Generates questions from course materials automatically.
 """
 
 import io
+import os
 import random
 import re
+import shutil
+import subprocess
+import tempfile
 from typing import List, Dict, Optional
 from collections import defaultdict
 from django.core.files.storage import default_storage
@@ -21,6 +25,7 @@ except Exception:
 class ExamQuestionGenerator:
     """Generates exam questions automatically from course materials."""
     MAX_TEXT_EXTRACT_SIZE = 8 * 1024 * 1024  # 8MB safety limit
+    OFFICE_DOCUMENT_EXTENSIONS = (".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls")
 
     # Sample question templates for different topics
     QUESTION_TEMPLATES = {
@@ -118,8 +123,7 @@ class ExamQuestionGenerator:
         course = exam.course
         materials = CourseMaterial.objects.filter(
             course=course,
-            is_visible=True
-        ).order_by('order')
+        ).prefetch_related('files').order_by('order', 'created_at')
 
         # Delete existing questions
         ExamQuestion.objects.filter(exam=exam).delete()
@@ -131,7 +135,7 @@ class ExamQuestionGenerator:
         course_category = cls._categorize_course(course)
 
         # Generate questions from materials
-        material_questions = cls._generate_from_materials(materials, num_questions)
+        material_questions = cls._generate_from_materials(course, materials, num_questions)
         questions.extend(material_questions)
 
         # Fill remaining with generic questions
@@ -143,7 +147,7 @@ class ExamQuestionGenerator:
         # If still short, synthesize additional variants from materials
         remaining = num_questions - len(questions)
         if remaining > 0:
-            synth = cls._synthesize_additional_questions(materials, remaining)
+            synth = cls._synthesize_additional_questions(course, materials, remaining)
             questions.extend(synth)
 
         # Reduce near-duplicates by limiting variants per base question
@@ -188,7 +192,7 @@ class ExamQuestionGenerator:
         # Third pass: synthesize additional distinct questions from materials
         if len(final_questions) < num_questions:
             need = num_questions - len(final_questions)
-            synth_more = cls._synthesize_additional_questions(materials, need * 2)
+            synth_more = cls._synthesize_additional_questions(course, materials, need * 2)
             for q in synth_more:
                 if len(final_questions) >= num_questions:
                     break
@@ -246,56 +250,61 @@ class ExamQuestionGenerator:
             return 'general'
 
     @classmethod
-    def _generate_from_materials(cls, materials, count: int) -> List[Dict]:
+    def _generate_from_materials(cls, course, materials, count: int) -> List[Dict]:
         """Generate questions based on course material text content."""
         questions = []
-        material_sentences = cls._collect_material_sentences(materials)
-        if not material_sentences:
+        material_units = cls._collect_material_sentences(course, materials)
+        if not material_units:
             return questions
 
         # Build a global keyword pool for better distractors in MCQ questions.
-        global_keywords = cls._extract_keywords(" ".join(s for _, s in material_sentences))
+        global_keywords = cls._extract_keywords(" ".join(unit["sentence"] for unit in material_units))
 
-        for material, sentence in material_sentences:
+        for unit in material_units:
             if len(questions) >= count:
                 break
 
-            # True/False from direct statement in the material.
-            questions.append({
-                'question': sentence,
-                'type': 'TRUE_FALSE',
-                'options': ['True', 'False'],
-                'answer': 'True',
-                'material': material
-            })
-
-            if len(questions) >= count:
-                break
-
-            mcq = cls._build_mcq_from_sentence(sentence, global_keywords)
+            mcq = cls._build_mcq_from_sentence(unit["sentence"], global_keywords, unit.get("section"))
             if mcq:
-                mcq['material'] = material
+                mcq['material'] = unit["material"]
                 questions.append(mcq)
 
         return questions
 
     @classmethod
-    def _collect_material_sentences(cls, materials) -> List[tuple]:
-        """Extract normalized sentences from material title/description/files."""
-        collected = []
+    def _collect_material_sentences(cls, course, materials) -> List[Dict]:
+        """Extract normalized section-aware statements from course content."""
+        collected: List[Dict] = []
+        seen = set()
+        course_main_file = getattr(course, "main_file", None)
+        if course_main_file and getattr(course_main_file, "name", None):
+            main_text = cls._extract_text_from_file(course_main_file.name, course_main_file.name.lower())
+            for section, sentence in cls._extract_content_units(main_text, "Main Course File"):
+                normalized = sentence.lower().strip()
+                if len(sentence) < 25 or normalized in seen:
+                    continue
+                seen.add(normalized)
+                collected.append({"material": None, "section": section, "sentence": sentence})
+
         for material in materials:
             text = cls._extract_material_text(material)
-            for sentence in cls._split_sentences(text):
-                # Keep only meaningful content sentences.
-                if len(sentence) < 35:
+            default_section = getattr(material, "title", "") or "Course Material"
+            for section, sentence in cls._extract_content_units(text, default_section):
+                normalized = sentence.lower().strip()
+                if len(sentence) < 25 or normalized in seen:
                     continue
-                collected.append((material, sentence))
+                seen.add(normalized)
+                collected.append({"material": material, "section": section, "sentence": sentence})
         return collected
 
     @classmethod
     def _extract_material_text(cls, material) -> str:
         """Extract raw text from metadata and supported file types."""
         parts = []
+        title = getattr(material, "title", "") or ""
+        if title:
+            parts.append(title)
+
         description = getattr(material, "description", "") or ""
         if description:
             parts.append(description)
@@ -307,6 +316,20 @@ class ExamQuestionGenerator:
             if extracted:
                 parts.append(extracted)
 
+        for attachment in material.files.all():
+            attachment_title = getattr(attachment, "title", "") or ""
+            attachment_description = getattr(attachment, "description", "") or ""
+            if attachment_title:
+                parts.append(attachment_title)
+            if attachment_description:
+                parts.append(attachment_description)
+
+            attachment_file = getattr(attachment, "file", None)
+            if attachment_file and getattr(attachment_file, "name", None):
+                extracted = cls._extract_text_from_file(attachment_file.name, attachment_file.name.lower())
+                if extracted:
+                    parts.append(extracted)
+
         return "\n".join(parts).strip()
 
     @classmethod
@@ -314,7 +337,8 @@ class ExamQuestionGenerator:
         """Extract text from supported file formats stored in Django storage."""
         is_pdf = file_name.endswith(".pdf")
         is_text_like = file_name.endswith((".txt", ".md", ".csv", ".json", ".xml", ".html"))
-        if not (is_pdf or is_text_like):
+        is_office_doc = file_name.endswith(cls.OFFICE_DOCUMENT_EXTENSIONS)
+        if not (is_pdf or is_text_like or is_office_doc):
             # Skip binary/unsupported files (video/audio/images/docs) for stability.
             return ""
 
@@ -332,6 +356,9 @@ class ExamQuestionGenerator:
         except Exception:
             return ""
 
+        if is_office_doc:
+            return cls._extract_text_from_office_bytes(raw, file_name)
+
         # PDF parsing (best-effort).
         if is_pdf and PdfReader:
             try:
@@ -341,7 +368,7 @@ class ExamQuestionGenerator:
                     txt = page.extract_text() or ""
                     if txt.strip():
                         pages.append(txt)
-                return "\n".join(pages).strip()
+                return "\n\n".join(pages).strip()
             except Exception:
                 return ""
 
@@ -355,14 +382,133 @@ class ExamQuestionGenerator:
         return ""
 
     @classmethod
+    def _extract_text_from_office_bytes(cls, raw: bytes, file_name: str) -> str:
+        soffice_path = shutil.which("soffice")
+        if not soffice_path or not PdfReader:
+            return ""
+
+        suffix = os.path.splitext(file_name)[1].lower()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_path = os.path.join(temp_dir, f"source{suffix}")
+            pdf_path = os.path.join(temp_dir, "source.pdf")
+
+            try:
+                with open(source_path, "wb") as fh:
+                    fh.write(raw)
+            except OSError:
+                return ""
+
+            result = subprocess.run(
+                [
+                    soffice_path,
+                    "--headless",
+                    "--convert-to",
+                    "pdf",
+                    "--outdir",
+                    temp_dir,
+                    source_path,
+                ],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0 or not os.path.exists(pdf_path):
+                return ""
+
+            try:
+                reader = PdfReader(pdf_path)
+                pages = []
+                for page in reader.pages[:30]:
+                    txt = page.extract_text() or ""
+                    if txt.strip():
+                        pages.append(txt)
+                return "\n\n".join(pages).strip()
+            except Exception:
+                return ""
+
+    @classmethod
+    def _extract_content_units(cls, text: str, default_section: str) -> List[tuple[str, str]]:
+        if not text:
+            return []
+
+        raw_text = text.replace("\r", "\n").replace("\f", "\n\n")
+        blocks = [block.strip() for block in re.split(r"\n{2,}", raw_text) if block.strip()]
+        units: List[tuple[str, str]] = []
+
+        for block in blocks:
+            lines = [re.sub(r"\s+", " ", line).strip(" -\t") for line in block.splitlines()]
+            lines = [line for line in lines if line]
+            if not lines:
+                continue
+
+            section = default_section
+            content_lines = lines
+            first_line = lines[0]
+            if cls._looks_like_heading(first_line):
+                section = first_line
+                content_lines = lines[1:] or lines[:1]
+
+            line_candidates = content_lines if content_lines else [block]
+            for candidate in line_candidates:
+                for sentence in cls._split_sentences(candidate):
+                    units.append((section, sentence))
+
+        if not units:
+            for sentence in cls._split_sentences(text):
+                units.append((default_section, sentence))
+        return units
+
+    @classmethod
+    def _looks_like_heading(cls, text: str) -> bool:
+        words = text.split()
+        if not words or len(words) > 12 or len(text) > 90:
+            return False
+        if re.fullmatch(r"[\W\d_]+", text.strip()):
+            return False
+        if cls._is_weak_section_label(text):
+            return False
+        if text.endswith((".", "?", "!")):
+            return False
+        uppercase_ratio = sum(1 for ch in text if ch.isupper()) / max(1, sum(1 for ch in text if ch.isalpha()))
+        return uppercase_ratio > 0.2 or all(word[:1].isupper() for word in words if word[:1].isalpha())
+
+    @classmethod
     def _split_sentences(cls, text: str) -> List[str]:
         if not text:
             return []
-        normalized = re.sub(r"\s+", " ", text).strip()
-        if not normalized:
-            return []
-        candidates = re.split(r"(?<=[.!?])\s+", normalized)
-        return [c.strip(" -\n\r\t") for c in candidates if c and c.strip()]
+        raw_text = text.replace("\r", "\n")
+        block_candidates = re.split(r"\n+|[•●▪◦▪]+", raw_text)
+        candidates: List[str] = []
+
+        for block in block_candidates:
+            block = block.strip()
+            if not block:
+                continue
+
+            block = re.sub(r"\s+", " ", block).strip()
+            for sentence in re.split(r"(?<=[.!?])\s+|;\s+|\s+-\s+", block):
+                sentence = re.sub(r"^\d+[\).:-]?\s*", "", sentence).strip(" -\n\r\t")
+                sentence = re.sub(r"\s+", " ", sentence).strip()
+                if not sentence:
+                    continue
+
+                if len(sentence) > 220:
+                    sub_parts = re.split(r",\s+|:\s+", sentence)
+                    for sub in sub_parts:
+                        sub = sub.strip()
+                        if len(sub) >= 25:
+                            candidates.append(sub)
+                else:
+                    candidates.append(sentence)
+
+        unique = []
+        seen = set()
+        for candidate in candidates:
+            normalized = candidate.lower().strip()
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            unique.append(candidate)
+        return unique
 
     @classmethod
     def _extract_keywords(cls, text: str) -> List[str]:
@@ -384,41 +530,241 @@ class ExamQuestionGenerator:
         return unique
 
     @classmethod
-    def _build_mcq_from_sentence(cls, sentence: str, keyword_pool: List[str]) -> Optional[Dict]:
-        """Create one MCQ by masking a key term from a sentence."""
+    def _build_mcq_from_sentence(cls, sentence: str, keyword_pool: List[str], section: Optional[str] = None) -> Optional[Dict]:
+        """Create one MCQ with a more natural question style from the material sentence."""
         keywords = cls._extract_keywords(sentence)
         if not keywords:
             return None
 
-        correct = max(keywords, key=len)
-        masked_sentence = re.sub(
-            rf"\b{re.escape(correct)}\b",
-            "______",
-            sentence,
-            count=1,
-            flags=re.IGNORECASE,
-        )
-        if "______" not in masked_sentence:
+        option_variants = [sentence.strip()]
+        distractor_pool = [w for w in keyword_pool if w.lower() not in {k.lower() for k in keywords}]
+
+        for keyword in sorted(keywords, key=len, reverse=True):
+            replacement = next((w for w in distractor_pool if w.lower() != keyword.lower()), None)
+            if not replacement:
+                continue
+
+            variant = re.sub(
+                rf"\b{re.escape(keyword)}\b",
+                replacement,
+                sentence,
+                count=1,
+                flags=re.IGNORECASE,
+            ).strip()
+            if variant != sentence and variant not in option_variants:
+                option_variants.append(variant)
+
+            if len(option_variants) >= 4:
+                break
+
+        if len(option_variants) < 2:
             return None
 
-        distractors = [w for w in keyword_pool if w != correct]
-        random.shuffle(distractors)
-        options = [correct] + distractors[:3]
+        fallback_variants = [
+            f"{sentence.strip()} This statement is incorrect.",
+            f"{sentence.strip()} This applies in every situation without exception.",
+            f"{sentence.strip()} This statement is unrelated to the lesson.",
+        ]
+        for fallback in fallback_variants:
+            if fallback not in option_variants:
+                option_variants.append(fallback)
+            if len(option_variants) >= 4:
+                break
 
-        # Ensure 4 options, even with sparse material text.
-        while len(options) < 4:
-            options.append(f"option_{len(options)+1}")
-
+        options = option_variants[:4]
         random.shuffle(options)
-        correct_index = options.index(correct)
+        correct_index = options.index(sentence.strip())
         correct_letter = chr(ord("A") + correct_index)
+        section = (section or "").strip()
+        question_text = cls._build_question_prompt(sentence.strip(), section)
 
         return {
-            "question": f'According to the course material, which word best completes: "{masked_sentence}"',
+            "question": question_text,
             "type": "MULTIPLE_CHOICE",
             "options": options,
             "answer": correct_letter,
         }
+
+    @classmethod
+    def _build_question_prompt(cls, sentence: str, section: Optional[str] = None) -> str:
+        sentence = sentence.strip()
+        section = (section or "").strip()
+        lowered = sentence.lower()
+        topic = cls._derive_topic_from_sentence(sentence)
+        section_topic = cls._clean_prompt_topic(section)
+        concept = topic or section_topic
+
+        if any(lowered.startswith(prefix) for prefix in ("what is ", "what are ", "define ")):
+            if concept:
+                return f"Which answer best defines {concept}?"
+            return "Which answer best defines the concept described in the lesson?"
+
+        if lowered.startswith(("confidentiality ", "integrity ", "availability ", "authentication ", "authorization ")):
+            topic = sentence.split()[0].strip(":,.")
+            return f"Which statement best describes {topic}?"
+
+        if " is " in lowered:
+            subject = cls._clean_prompt_topic(sentence.split(" is ", 1)[0].strip(" :,."))
+            if 2 <= len(subject.split()) <= 8:
+                return f"Which statement best describes {subject}?"
+
+        if " means " in lowered:
+            subject = cls._clean_prompt_topic(sentence.split(" means ", 1)[0].strip(" :,."))
+            if 1 <= len(subject.split()) <= 8:
+                return f"What does {subject} mean?"
+
+        if " refers to " in lowered:
+            subject = cls._clean_prompt_topic(sentence.split(" refers to ", 1)[0].strip(" :,."))
+            if 1 <= len(subject.split()) <= 8:
+                return f"What does {subject} refer to?"
+
+        if " used " in lowered or " use " in lowered:
+            if topic:
+                return f"How is {topic} used?"
+            if section_topic:
+                return f"How is {section_topic} used?"
+            return "How is this concept applied?"
+
+        if " purpose " in lowered or lowered.startswith("the purpose"):
+            if topic:
+                return f"What is the purpose of {topic}?"
+            if section_topic:
+                return f"What is the purpose of {section_topic}?"
+            return "What is the purpose of this concept?"
+
+        if cls._is_definition_like_sentence(sentence) and concept:
+            return f"Which statement best describes {concept}?"
+        if cls._is_function_like_sentence(sentence) and concept:
+            return f"What is the main purpose of {concept}?"
+        if cls._is_feature_like_sentence(sentence) and concept:
+            return f"Which feature best matches {concept}?"
+        if concept:
+            prompt_templates = [
+                "Which statement best describes {topic}?",
+                "What is the main idea of {topic}?",
+                "Which option best explains {topic}?",
+                "Which statement about {topic} is accurate?",
+            ]
+            return random.choice(prompt_templates).format(topic=concept)
+        return "Which option is most consistent with the lesson content?"
+
+    @classmethod
+    def _clean_prompt_topic(cls, text: str) -> str:
+        text = (text or "").strip(" :,.")
+        if not text:
+            return ""
+        lowered = text.lower()
+        if cls._is_weak_section_label(text):
+            return ""
+        if re.fullmatch(r"(chapter|week|section|slide|lesson|topic|unit)\s*[:\-]?\s*[ivx\d]+", lowered):
+            return ""
+        return text
+
+    @classmethod
+    def _derive_topic_from_sentence(cls, sentence: str) -> str:
+        sentence = sentence.strip()
+        patterns = [
+            r"^([A-Za-z][A-Za-z0-9\s/_-]{2,60}?)\s+is\s+",
+            r"^([A-Za-z][A-Za-z0-9\s/_-]{2,60}?)\s+refers to\s+",
+            r"^([A-Za-z][A-Za-z0-9\s/_-]{2,60}?)\s+means\s+",
+            r"^([A-Za-z][A-Za-z0-9\s/_-]{2,60}?)\s+describes\s+",
+        ]
+        for pattern in patterns:
+            match = re.match(pattern, sentence, flags=re.IGNORECASE)
+            if match:
+                topic = cls._clean_prompt_topic(match.group(1))
+                if topic:
+                    return topic
+
+        phrase = cls._topic_phrase_from_sentence(sentence)
+        if phrase:
+            return phrase
+
+        keywords = cls._extract_keywords(sentence)
+        if not keywords:
+            return ""
+
+        chosen = []
+        for keyword in keywords[:5]:
+            if keyword.isdigit() or len(keyword) < 4:
+                continue
+            chosen.append(keyword)
+        return " ".join(chosen[:3]).strip()
+
+    @classmethod
+    def _is_weak_section_label(cls, text: str) -> bool:
+        lowered = (text or "").strip().lower()
+        if not lowered:
+            return True
+        if lowered in {"course material", "main course file", "overview", "introduction"}:
+            return True
+        if re.fullmatch(r"[\d\W_]+", lowered):
+            return True
+        if re.fullmatch(r"(week|chapter|section|slide|lesson|topic|unit)\s*[:\-]?\s*[ivx\d\w]+", lowered):
+            return True
+        if re.fullmatch(r"(page|part)\s+\d+", lowered):
+            return True
+        words = lowered.split()
+        if len(words) <= 3 and all(word.isdigit() for word in words):
+            return True
+        if len(words) <= 3 and any(word.isdigit() for word in words):
+            return True
+        return False
+
+    @classmethod
+    def _topic_phrase_from_sentence(cls, sentence: str) -> str:
+        cleaned = re.sub(r"^\d+[\).:-]?\s*", "", sentence).strip()
+        cleaned = re.sub(r"\([^)]*\)", "", cleaned)
+        lead_ins = [
+            "in general",
+            "for example",
+            "for instance",
+            "according to the lesson",
+            "according to the material",
+            "this means",
+            "this implies",
+        ]
+        lowered = cleaned.lower()
+        for lead_in in lead_ins:
+            if lowered.startswith(lead_in):
+                cleaned = cleaned[len(lead_in):].lstrip(" ,:-")
+                lowered = cleaned.lower()
+
+        segments = re.split(
+            r"\b(?: is | are | means | refers to | helps | allows | ensures | protects | keeps | uses | includes | involves | provides | supports )\b",
+            cleaned,
+            maxsplit=1,
+            flags=re.IGNORECASE,
+        )
+        candidate = segments[0].strip(" :,-") if segments else cleaned
+        candidate_words = [word for word in candidate.split() if re.search(r"[A-Za-z]", word)]
+        if 1 <= len(candidate_words) <= 8:
+            topic = cls._clean_prompt_topic(" ".join(candidate_words))
+            if topic:
+                return topic
+
+        meaningful = [
+            word for word in re.findall(r"[A-Za-z][A-Za-z0-9_-]*", cleaned)
+            if len(word) > 3 and word.lower() not in {"this", "that", "these", "those", "which", "their", "there", "general"}
+        ]
+        if meaningful:
+            return cls._clean_prompt_topic(" ".join(meaningful[:3]))
+        return ""
+
+    @classmethod
+    def _is_definition_like_sentence(cls, sentence: str) -> bool:
+        lowered = sentence.lower()
+        return any(token in lowered for token in (" is ", " are ", " refers to ", " means "))
+
+    @classmethod
+    def _is_function_like_sentence(cls, sentence: str) -> bool:
+        lowered = sentence.lower()
+        return any(token in lowered for token in (" purpose ", " used ", " use ", " helps ", " allows ", " enables ", " supports "))
+
+    @classmethod
+    def _is_feature_like_sentence(cls, sentence: str) -> bool:
+        lowered = sentence.lower()
+        return any(token in lowered for token in (" includes ", " consists of ", " contains ", " has ", " involves "))
 
     @classmethod
     def _generate_generic_questions(cls, category: str, count: int) -> List[Dict]:
@@ -438,11 +784,25 @@ class ExamQuestionGenerator:
             selected = random.choices(pool, k=count)
 
         for q in selected:
+            q_type = q['type']
+            options = q.get('options')
+            answer = q['answer']
+            question_text = q['question']
+
+            if q_type == 'TRUE_FALSE':
+                question_text = 'According to the course material, which statement is correct?'
+                options = [q['question'], f"It is false that {q['question'].rstrip('.')}"]
+                options.extend([
+                    f"{q['question'].rstrip('.')} in every situation.",
+                    f"{q['question'].rstrip('.')} only in unrelated topics.",
+                ])
+                answer = 'A'
+
             questions.append({
-                'question': q['question'],
-                'type': q['type'],
-                'options': q.get('options'),
-                'answer': q['answer'],
+                'question': question_text,
+                'type': 'MULTIPLE_CHOICE',
+                'options': options,
+                'answer': answer,
                 'material': None
             })
 
@@ -452,75 +812,47 @@ class ExamQuestionGenerator:
             to_add = count - len(questions)
             add_selected = random.choices(general_pool, k=to_add)
             for q in add_selected:
+                q_type = q['type']
+                options = q.get('options')
+                answer = q['answer']
+                question_text = q['question']
+
+                if q_type == 'TRUE_FALSE':
+                    question_text = 'According to the course material, which statement is correct?'
+                    options = [q['question'], f"It is false that {q['question'].rstrip('.')}"]
+                    options.extend([
+                        f"{q['question'].rstrip('.')} in every situation.",
+                        f"{q['question'].rstrip('.')} only in unrelated topics.",
+                    ])
+                    answer = 'A'
+
                 questions.append({
-                    'question': q['question'],
-                    'type': q['type'],
-                    'options': q.get('options'),
-                    'answer': q['answer'],
+                    'question': question_text,
+                    'type': 'MULTIPLE_CHOICE',
+                    'options': options,
+                    'answer': answer,
                     'material': None
                 })
 
         return questions
 
     @classmethod
-    def _synthesize_additional_questions(cls, materials, needed: int) -> List[Dict]:
-        """Create additional question variants from available materials to reach needed count.
-
-        This makes simple templated variations (using templates in QUESTION_TEMPLATES)
-        and generates slightly different options so the generator can reach high
-        requested counts even if the base pools are small.
-        """
+    def _synthesize_additional_questions(cls, course, materials, needed: int) -> List[Dict]:
+        """Create additional distinct MCQs from unused material sentences before falling back further."""
         questions = []
         if not materials:
             return questions
+        material_units = cls._collect_material_sentences(course, materials)
+        random.shuffle(material_units)
+        global_keywords = cls._extract_keywords(" ".join(unit["sentence"] for unit in material_units))
 
-        templates = []
-        for k, v in cls.QUESTION_TEMPLATES.items():
-            templates.extend(v)
-
-        mat_cycle = list(materials)
-        idx = 0
-        attempt = 0
-        while len(questions) < needed and attempt < needed * 5:
-            mat = mat_cycle[idx % len(mat_cycle)]
-            source_text = cls._extract_material_text(mat)
-            base_terms = cls._extract_keywords(source_text)
-            topic = max(base_terms, key=len) if base_terms else "the lesson content"
-            topic2 = base_terms[1] if len(base_terms) > 1 else "related concepts"
-            purpose = base_terms[2] if len(base_terms) > 2 else "practical learning"
-
-            # choose a template and format it
-            tpl = random.choice(templates)
-            q_text = (
-                tpl.replace('{topic}', topic)
-                .replace('{topic1}', topic)
-                .replace('{topic2}', topic2)
-                .replace('{purpose}', purpose)
-                .replace('{statement}', topic)
-            )
-
-            # Create either multiple choice or true/false variant
-            if random.random() < 0.7:
-                # multiple choice: create options by slicing title words and adding distractors
-                pool = cls._extract_keywords(source_text)
-                correct = max(pool, key=len) if pool else 'Concept A'
-                distractor_pool = [w for w in pool if w != correct]
-                random.shuffle(distractor_pool)
-                options = [correct] + distractor_pool[:3]
-                while len(options) < 4:
-                    options.append(f"Distractor {len(options)}")
-                q = {'question': q_text, 'type': 'MULTIPLE_CHOICE', 'options': options, 'answer': 'A', 'material': mat}
-            else:
-                q = {'question': q_text, 'type': 'TRUE_FALSE', 'options': ['True', 'False'], 'answer': 'True', 'material': mat}
-
-            # Add a small variant suffix when duplicates may occur
-            variant_num = (idx // len(mat_cycle)) + 1
-            if variant_num > 1:
-                q['question'] = f"{q['question']} (variant {variant_num})"
-
-            questions.append(q)
-            idx += 1
-            attempt += 1
+        for unit in material_units:
+            if len(questions) >= needed:
+                break
+            mcq = cls._build_mcq_from_sentence(unit["sentence"], global_keywords, unit.get("section"))
+            if mcq:
+                mcq['material'] = unit["material"]
+                questions.append(mcq)
 
         return questions
 

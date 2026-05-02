@@ -9,10 +9,12 @@ from .forms import (
     StudentRegistrationForm,
     StudentLoginForm,
     StudentProfileForm,
+    StudentChangePasswordForm,
     ForgotPasswordForm,
     ResetPasswordForm,
     TeacherLoginForm,
     TeacherProfileForm,
+    TeacherChangePasswordForm,
     CourseMaterialForm,
     CourseMaterialFormAdd,
     TeacherRegistrationForm,
@@ -162,20 +164,11 @@ def teacher_create_course(request):
             course.teacher = teacher
             course.is_approved = False
             # Price is set by admin only; use model default
-            course.save()
-            # Optional main course file (PDF or document) – separate from lessons/assignments
+            # Save main course file directly to Course model
             main_file = request.FILES.get('main_file')
             if main_file:
-                name = main_file.name.lower()
-                mtype = CourseMaterial.MATERIAL_TYPE_PDF if name.endswith('.pdf') else CourseMaterial.MATERIAL_TYPE_OTHER
-                CourseMaterial.objects.create(
-                    course=course,
-                    title=main_file.name,
-                    material_type=mtype,
-                    file=main_file,
-                    order=0,
-                    is_visible=True,
-                )
+                course.main_file = main_file
+            course.save()
             return redirect(reverse('teacher_add_lesson', kwargs={'course_code': course.course_code}))
     else:
         form = CourseFormTeacher(initial={'instructor': teacher.name})
@@ -597,6 +590,8 @@ def edit_profile(request):
         form = StudentProfileForm(request.POST, request.FILES, instance=student)
         if form.is_valid():
             form.save()
+            from django.contrib import messages
+            messages.success(request, 'Profile updated successfully.')
             return redirect(reverse('dashboard'))
     else:
         form = StudentProfileForm(instance=student)
@@ -606,6 +601,29 @@ def edit_profile(request):
         'student': student
     }
     return render(request, 'students/edit_profile.html', context)
+
+
+def student_change_password(request):
+    if 'student_id' not in request.session:
+        return redirect(reverse('login_student'))
+
+    student = get_object_or_404(Student, student_id=request.session['student_id'])
+
+    if request.method == 'POST':
+        form = StudentChangePasswordForm(request.POST, instance=student)
+        if form.is_valid():
+            student.password = make_password(form.cleaned_data['new_password'])
+            student.save(update_fields=['password'])
+            from django.contrib import messages
+            messages.success(request, 'Password changed successfully.')
+            return redirect(reverse('edit_profile'))
+    else:
+        form = StudentChangePasswordForm(instance=student)
+
+    return render(request, 'students/change_password.html', {
+        'form': form,
+        'student': student,
+    })
 
 
 def teacher_edit_profile(request):
@@ -621,6 +639,8 @@ def teacher_edit_profile(request):
         form = TeacherProfileForm(request.POST, request.FILES, instance=teacher)
         if form.is_valid():
             form.save()
+            from django.contrib import messages
+            messages.success(request, 'Profile updated successfully.')
             return redirect(reverse('teacher_dashboard'))
     else:
         form = TeacherProfileForm(instance=teacher)
@@ -630,6 +650,29 @@ def teacher_edit_profile(request):
         'teacher': teacher
     }
     return render(request, 'teachers/edit_profile.html', context)
+
+
+def teacher_change_password(request):
+    get_teacher = teacher_required(None)
+    teacher, redirect_response = get_teacher(request)
+    if redirect_response:
+        return redirect_response
+
+    if request.method == 'POST':
+        form = TeacherChangePasswordForm(request.POST, instance=teacher)
+        if form.is_valid():
+            teacher.password = make_password(form.cleaned_data['new_password'])
+            teacher.save(update_fields=['password'])
+            from django.contrib import messages
+            messages.success(request, 'Password changed successfully.')
+            return redirect(reverse('teacher_edit_profile'))
+    else:
+        form = TeacherChangePasswordForm(instance=teacher)
+
+    return render(request, 'teachers/change_password.html', {
+        'form': form,
+        'teacher': teacher,
+    })
 
 def course_detail(request, course_code):
     """

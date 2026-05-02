@@ -47,8 +47,8 @@
         <!-- Current Profile Picture -->
         <div class="text-center mb-8 pb-8 border-b border-gray-200">
             <h3 class="text-lg font-semibold mb-4">Current Profile Picture</h3>
-            {% if teacher.profile_picture %}
-                <img src="{{ teacher.profile_picture.url }}" alt="Profile Picture" 
+            {% if teacher.profile_picture_url %}
+                <img src="{{ teacher.profile_picture_url }}" alt="Profile Picture" 
                      class="w-32 h-32 rounded-full object-cover border-4 border-primary-100 mx-auto" id="currentProfilePic">
             {% else %}
                 <div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center mx-auto">
@@ -94,7 +94,8 @@
                 {% if form.profile_picture.errors %}
                     <p class="mt-1 text-sm text-red-600">{{ form.profile_picture.errors.0 }}</p>
                 {% endif %}
-                
+            </div>
+            <div class="pt-6">
                 <!-- Image Cropper Modal -->
                 <div id="cropModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
                     <div class="bg-white rounded-lg max-w-xl w-full p-4 sm:p-6 shadow-2xl">
@@ -135,6 +136,9 @@
             <div class="flex justify-end gap-4 pt-6 border-t border-gray-200">
                 <a href="{% url 'teacher_dashboard' %}" class="btn-outline">
                     Cancel
+                </a>
+                <a href="{% url 'teacher_change_password' %}" class="btn-outline">
+                    Change Password
                 </a>
                 <button type="submit" class="btn-primary">
                     Save Changes
@@ -256,5 +260,6 @@ function applyCrop() {
         cropper = null;
     }, 'image/jpeg', 0.9);
 }
+
 </script>
 {% endblock %}

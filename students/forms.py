@@ -6,6 +6,7 @@ from datetime import date
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.contrib.auth.hashers import check_password
 
 from .models import Course, CourseMaterial, Student, Teacher, AssignmentSubmission, AssignmentSubmission
 
@@ -52,6 +53,14 @@ def _validate_name(value: str, label: str) -> str:
         raise ValidationError(f'{label} must contain only letters, spaces, ., -, or \', and no digits.')
     return name
 
+
+def _validate_password_strength(password: str) -> str:
+    if len(password) < 6:
+        raise ValidationError('Password must be at least 6 characters long.')
+    if not re.search(r'(?=.*[a-zA-Z])(?=.*\d)', password):
+        raise ValidationError('Password must contain both letters and numbers.')
+    return password
+
 class StudentRegistrationForm(forms.ModelForm):
     """
     A form to handle student registration.
@@ -68,8 +77,8 @@ class StudentRegistrationForm(forms.ModelForm):
 
     def clean_student_id(self):
         student_id = self.cleaned_data['student_id'].strip()
-        if not re.fullmatch(r'[A-Za-z0-9]{3,10}', student_id):
-            raise ValidationError('Student ID must be 3-10 alphanumeric characters.')
+        if not re.fullmatch(r'^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d]{3,10}$', student_id):
+            raise ValidationError('Student ID must be 3-10 characters and contain both letters and numbers.')
         if Student.objects.filter(student_id=student_id).exists():
             raise ValidationError('A student with this ID already exists.')
         return student_id
@@ -97,6 +106,9 @@ class StudentRegistrationForm(forms.ModelForm):
         if password and len(password) < 6:
             self.add_error('password', 'Password must be at least 6 characters long.')
 
+        if password and not re.search(r'(?=.*[a-zA-Z])(?=.*\d)', password):
+            self.add_error('password', 'Password must contain both letters and numbers.')
+
         if password and confirm_password and password != confirm_password:
             self.add_error('confirm_password', 'Passwords do not match.')
 
@@ -117,8 +129,8 @@ class TeacherRegistrationForm(forms.ModelForm):
 
     def clean_teacher_id(self):
         teacher_id = self.cleaned_data['teacher_id'].strip()
-        if not re.fullmatch(r'[A-Za-z0-9]{3,10}', teacher_id):
-            raise ValidationError('Teacher ID must be 3-10 alphanumeric characters.')
+        if not re.fullmatch(r'^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d]{3,10}$', teacher_id):
+            raise ValidationError('Teacher ID must be 3-10 characters and contain both letters and numbers.')
         if Teacher.objects.filter(teacher_id=teacher_id).exists():
             raise ValidationError('A teacher with this ID already exists.')
         return teacher_id
@@ -152,6 +164,9 @@ class TeacherRegistrationForm(forms.ModelForm):
 
         if password and len(password) < 6:
             self.add_error('password', 'Password must be at least 6 characters long.')
+
+        if password and not re.search(r'(?=.*[a-zA-Z])(?=.*\d)', password):
+            self.add_error('password', 'Password must contain both letters and numbers.')
 
         if password and confirm_password and password != confirm_password:
             self.add_error('confirm_password', 'Passwords do not match.')
@@ -213,7 +228,7 @@ class TeacherLoginForm(forms.Form):
 class StudentProfileForm(forms.ModelForm):
     """
     A form for editing a student's profile.
-    This form excludes the student_id and password fields.
+    This form excludes the student_id field.
     """
     class Meta:
         model = Student
@@ -242,7 +257,9 @@ class StudentProfileForm(forms.ModelForm):
 
     def clean_profile_picture(self):
         upload = self.cleaned_data.get('profile_picture')
-        if upload:
+        # If the existing image is left unchanged, Django may return an ImageFieldFile
+        # object that does not expose uploaded file metadata such as content_type.
+        if upload and getattr(upload, 'content_type', None):
             _validate_image(upload)
         return upload
 
@@ -250,7 +267,7 @@ class StudentProfileForm(forms.ModelForm):
 class TeacherProfileForm(forms.ModelForm):
     """
     A form for editing a teacher's profile.
-    This form excludes the teacher_id, password, and status fields.
+    This form excludes the teacher_id field.
     """
     class Meta:
         model = Teacher
@@ -278,9 +295,85 @@ class TeacherProfileForm(forms.ModelForm):
 
     def clean_profile_picture(self):
         upload = self.cleaned_data.get('profile_picture')
-        if upload:
+        if upload and getattr(upload, 'content_type', None):
             _validate_image(upload)
         return upload
+
+
+class StudentChangePasswordForm(forms.Form):
+    current_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'input-field', 'placeholder': 'Enter current password'}),
+        help_text='Enter your current password to verify your identity.'
+    )
+    new_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'input-field', 'placeholder': 'Enter new password'}),
+        help_text='Minimum 6 characters and must contain both letters and numbers.'
+    )
+    confirm_new_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'input-field', 'placeholder': 'Confirm new password'}),
+        help_text='Re-enter your new password to confirm.'
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.instance = kwargs.pop('instance', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_current_password(self):
+        current_password = self.cleaned_data.get('current_password')
+        if self.instance and not check_password(current_password, self.instance.password):
+            raise ValidationError('Current password is incorrect.')
+        return current_password
+
+    def clean_new_password(self):
+        return _validate_password_strength(self.cleaned_data.get('new_password'))
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get('new_password')
+        confirm_new_password = cleaned_data.get('confirm_new_password')
+
+        if new_password and confirm_new_password and new_password != confirm_new_password:
+            self.add_error('confirm_new_password', 'New passwords do not match.')
+
+        return cleaned_data
+
+
+class TeacherChangePasswordForm(forms.Form):
+    current_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'input-field', 'placeholder': 'Enter current password'}),
+        help_text='Enter your current password to verify your identity.'
+    )
+    new_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'input-field', 'placeholder': 'Enter new password'}),
+        help_text='Minimum 6 characters and must contain both letters and numbers.'
+    )
+    confirm_new_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'input-field', 'placeholder': 'Confirm new password'}),
+        help_text='Re-enter your new password to confirm.'
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.instance = kwargs.pop('instance', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_current_password(self):
+        current_password = self.cleaned_data.get('current_password')
+        if self.instance and not check_password(current_password, self.instance.password):
+            raise ValidationError('Current password is incorrect.')
+        return current_password
+
+    def clean_new_password(self):
+        return _validate_password_strength(self.cleaned_data.get('new_password'))
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get('new_password')
+        confirm_new_password = cleaned_data.get('confirm_new_password')
+
+        if new_password and confirm_new_password and new_password != confirm_new_password:
+            self.add_error('confirm_new_password', 'New passwords do not match.')
+
+        return cleaned_data
 
 
 class CourseMaterialForm(forms.ModelForm):
