@@ -223,32 +223,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Email settings
-# Render free tier blocks ALL outbound SMTP. Use Resend HTTP API via django-anymail.
-# Required env vars: RESEND_API_KEY
-# Optional: DEFAULT_FROM_EMAIL (defaults to onboarding@resend.dev which works without domain verification)
+# Uses Brevo (free: 300 emails/day) via django-anymail HTTP API.
+# Render free tier blocks SMTP, so we use HTTP API instead.
+# Required env vars:
+#   BREVO_API_KEY  — get from app.brevo.com → SMTP & API → API Keys
+#   DEFAULT_FROM_EMAIL — e.g. "Zack Academy <your-verified-email@gmail.com>"
 
-RESEND_API_KEY = os.getenv('RESEND_API_KEY')
+BREVO_API_KEY = os.getenv('BREVO_API_KEY')
 
-# SMTP settings kept for local development fallback only
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ['1', 'true', 'yes']
-EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() in ['1', 'true', 'yes']
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '30'))
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Zack Academy <noreply@zackacademy.com>')
 
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Zack Academy <onboarding@resend.dev>')
-
-# Backend: Resend HTTP API (works on Render) > SMTP (local dev) > console (fallback)
-if RESEND_API_KEY:
-    EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
-    ANYMAIL = {'RESEND_API_KEY': RESEND_API_KEY}
+if BREVO_API_KEY:
+    EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
+    ANYMAIL = {'BREVO_API_KEY': BREVO_API_KEY}
     if 'anymail' not in INSTALLED_APPS:
         INSTALLED_APPS += ['anymail']
-elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 else:
+    # Local development fallback — prints emails to console
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 LOGGING = {

@@ -8,4 +8,4 @@ dj-database-url>=2.2
 cloudinary>=1.41.0
 django-cloudinary-storage>=0.3.0
 pypdf>=4.0
-django-anymail[resend]>=10.0
+django-anymail[brevo]>=10.0
