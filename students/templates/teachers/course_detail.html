@@ -121,7 +121,7 @@
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            <a href="{% url 'view_file' course.main_file.name %}?course_code={{ course.course_code }}" target="_blank" class="btn-primary text-sm">View</a>
+                            <a href="{{ course.main_file.url }}" target="_blank" class="btn-primary text-sm">View</a>
                             <a href="{{ course.main_file.url }}" download class="btn-outline text-sm">Download</a>
                         </div>
                     </div>
@@ -185,7 +185,7 @@
                                 {% if m.external_url %}
                                     <a href="{{ m.external_url }}" target="_blank" class="btn-primary text-sm">Open URL</a>
                                 {% elif m.file %}
-                                    <a href="{% url 'view_file' m.file.name %}?course_code={{ course.course_code }}" target="_blank" class="btn-primary text-sm">View</a>
+                                    <a href="{{ m.file.url }}" target="_blank" class="btn-primary text-sm">View</a>
                                     <a href="{{ m.file.url }}" download class="btn-outline text-sm">Download</a>
                                 {% endif %}
                             </div>
@@ -225,7 +225,7 @@
                                 {% if m.external_url %}
                                     <a href="{{ m.external_url }}" target="_blank" class="btn-primary text-sm">Open URL</a>
                                 {% elif m.file %}
-                                    <a href="{% url 'view_file' m.file.name %}?course_code={{ course.course_code }}" target="_blank" class="btn-primary text-sm">View</a>
+                                    <a href="{{ m.file.url }}" target="_blank" class="btn-primary text-sm">View</a>
                                     <a href="{{ m.file.url }}" download class="btn-outline text-sm">Download</a>
                                 {% endif %}
                                 <a href="{% url 'teacher_submissions' course.course_code m.material_id %}" class="btn-outline text-sm">View Submissions</a>

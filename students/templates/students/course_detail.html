@@ -163,7 +163,7 @@
                                 {% if m.external_url %}
                                     <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{{ m.external_url }}', true)" class="btn-primary text-sm">Open</button>
                                 {% elif m.file %}
-                                    <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{% url 'view_file' m.file.name %}?course_code={{ course.course_code }}', true)" class="btn-primary text-sm">View</button>
+                                    <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{{ m.file.url }}', true)" class="btn-primary text-sm">View</button>
                                     <a href="{{ m.file.url }}" download class="btn-outline text-sm">Download</a>
                                 {% endif %}
                             </div>
@@ -193,7 +193,7 @@
                                 {% if m.external_url %}
                                     <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{{ m.external_url }}', true)" class="btn-primary text-sm">Open</button>
                                 {% elif m.file %}
-                                    <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{% url 'view_file' m.file.name %}?course_code={{ course.course_code }}', true)" class="btn-primary text-sm">View</button>
+                                    <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{{ m.file.url }}', true)" class="btn-primary text-sm">View</button>
                                     <a href="{{ m.file.url }}" download class="btn-outline text-sm">Download</a>
                                 {% endif %}
                                 {% if m.material_id in submissions_by_material %}
