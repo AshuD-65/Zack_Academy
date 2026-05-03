@@ -1235,6 +1235,16 @@ def forgot_password(request):
                 })
                 plain_message = strip_tags(html_message)
                 
+                logger = logging.getLogger(__name__)
+                logger.info(
+                    'Attempting password reset email to %s using backend=%s host=%s port=%s user=%s from=%s',
+                    email,
+                    settings.EMAIL_BACKEND,
+                    settings.EMAIL_HOST,
+                    settings.EMAIL_PORT,
+                    settings.EMAIL_HOST_USER,
+                    settings.DEFAULT_FROM_EMAIL,
+                )
                 try:
                     send_mail(
                         subject,
@@ -1244,14 +1254,18 @@ def forgot_password(request):
                         html_message=html_message,
                         fail_silently=False,
                     )
-                    
+                    logger.info('Password reset email sent successfully to %s', email)
                     return render(request, 'students/forgot_password_success.html', {
                         'email': email
                     })
-                except (Exception, SystemExit):
-                    # Log the error for diagnostics; still show success for security
-                    logging.getLogger(__name__).exception(
-                        'Password reset email failed to send for %s', email
+                except Exception as exc:
+                    # Log the full error so it appears in Render logs
+                    logger.error(
+                        'Password reset email FAILED for %s — %s: %s',
+                        email,
+                        type(exc).__name__,
+                        exc,
+                        exc_info=True,
                     )
                     return render(request, 'students/forgot_password_success.html', {
                         'email': email

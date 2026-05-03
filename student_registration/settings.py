@@ -222,31 +222,36 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # X-Frame-Options settings for file viewing
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
-# Email settings (Gmail via environment variables; falls back to console if unset)
-# Set the following environment variables for real email delivery:
-#   EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
-# Optional overrides: EMAIL_HOST (default: smtp.gmail.com), EMAIL_PORT (default: 587), EMAIL_USE_TLS (default: True), EMAIL_USE_SSL (default: False), DEFAULT_FROM_EMAIL
+# Email settings
+# Render free tier blocks outbound SMTP (port 587/465). Use Resend HTTP API instead.
+# Set RESEND_API_KEY in environment for Resend delivery (recommended for Render).
+# Falls back to Gmail SMTP if RESEND_API_KEY is not set (works locally).
+
+RESEND_API_KEY = os.getenv('RESEND_API_KEY')
+
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ['1', 'true', 'yes']
 EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() in ['1', 'true', 'yes']
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-EMAIL_BACKEND = os.getenv('EMAIL_BACKEND')
-EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '10'))
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '30'))
 
-# Prefer sending from the authenticated Gmail address if available
 DEFAULT_FROM_EMAIL = os.getenv(
     'DEFAULT_FROM_EMAIL',
-    f"Zack Academy <{EMAIL_HOST_USER}>" if EMAIL_HOST_USER else 'Zack Academy <noreply@zackacademy.com>'
+    f"Zack Academy <{EMAIL_HOST_USER}>" if EMAIL_HOST_USER else 'Zack Academy <onboarding@resend.dev>'
 )
 
-# Choose backend based on explicit env override or credential presence
-if not EMAIL_BACKEND:
-    if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
-        EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    else:
-        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Backend selection: Resend API > Gmail SMTP > console (dev fallback)
+_explicit_backend = os.getenv('EMAIL_BACKEND', '').strip()
+if _explicit_backend:
+    EMAIL_BACKEND = _explicit_backend
+elif RESEND_API_KEY:
+    EMAIL_BACKEND = 'resend.django.EmailBackend'
+elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 LOGGING = {
     'version': 1,
