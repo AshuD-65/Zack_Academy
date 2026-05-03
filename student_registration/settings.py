@@ -223,14 +223,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Email settings
-# Render free tier blocks outbound SMTP. Use Resend SMTP relay instead.
-# Set the following in Render environment:
-#   EMAIL_HOST=smtp.resend.com, EMAIL_HOST_USER=resend,
-#   EMAIL_HOST_PASSWORD=<resend_api_key>, EMAIL_PORT=587,
-#   DEFAULT_FROM_EMAIL=Zack Academy <onboarding@resend.dev>
+# Render free tier blocks ALL outbound SMTP. Use Resend HTTP API via django-anymail.
+# Required env vars: RESEND_API_KEY
+# Optional: DEFAULT_FROM_EMAIL (defaults to onboarding@resend.dev which works without domain verification)
 
 RESEND_API_KEY = os.getenv('RESEND_API_KEY')
 
+# SMTP settings kept for local development fallback only
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ['1', 'true', 'yes']
@@ -239,21 +238,14 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '30'))
 
-DEFAULT_FROM_EMAIL = os.getenv(
-    'DEFAULT_FROM_EMAIL',
-    f"Zack Academy <{EMAIL_HOST_USER}>" if EMAIL_HOST_USER else 'Zack Academy <onboarding@resend.dev>'
-)
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Zack Academy <onboarding@resend.dev>')
 
-# Always configure anymail if the API key is present (needed even when using SMTP relay)
+# Backend: Resend HTTP API (works on Render) > SMTP (local dev) > console (fallback)
 if RESEND_API_KEY:
+    EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
     ANYMAIL = {'RESEND_API_KEY': RESEND_API_KEY}
     if 'anymail' not in INSTALLED_APPS:
         INSTALLED_APPS += ['anymail']
-
-# Backend selection: explicit env var > SMTP (when host/user/password set) > console
-_explicit_backend = os.getenv('EMAIL_BACKEND', '').strip()
-if _explicit_backend:
-    EMAIL_BACKEND = _explicit_backend
 elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 else:
