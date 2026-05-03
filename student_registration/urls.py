@@ -13,6 +13,7 @@ urlpatterns = [
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('admin-dashboard/logout/', views.admin_logout, name='admin_logout'),
     path('admin-dashboard/staff-ids/', views.admin_staff_ids, name='admin_staff_ids'),
+    path('admin-dashboard/staff-ids/<str:staff_id>/delete/', views.admin_staff_id_delete, name='admin_staff_id_delete'),
     # Students (CRUD)
     path('admin-dashboard/students/', views.admin_all_students, name='admin_all_students'),
     path('admin-dashboard/students/add/', views.admin_student_create, name='admin_student_create'),

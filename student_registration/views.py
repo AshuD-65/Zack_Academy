@@ -280,6 +280,19 @@ def admin_staff_ids(request):
     return render(request, 'admin/staff_ids.html', {'recent_invitations': recent_invitations})
 
 
+@staff_member_required
+def admin_staff_id_delete(request, staff_id):
+    """Delete a Staff ID invitation (only if not yet used)."""
+    invitation = get_object_or_404(StaffIDInvitation, staff_id=staff_id)
+    if request.method == 'POST':
+        if invitation.used_at:
+            messages.error(request, f'Staff ID {staff_id} has already been used and cannot be deleted.')
+        else:
+            invitation.delete()
+            messages.success(request, f'Staff ID {staff_id} deleted successfully.')
+    return redirect('admin_staff_ids')
+
+
 # ----- Students -----
 
 @staff_member_required
