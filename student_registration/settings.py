@@ -223,9 +223,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Email settings
-# Render free tier blocks outbound SMTP (port 587/465). Use Resend via django-anymail instead.
-# Set RESEND_API_KEY in environment for Resend delivery (recommended for Render).
-# Falls back to Gmail SMTP if RESEND_API_KEY is not set (works locally).
+# Render free tier blocks outbound SMTP. Use Resend SMTP relay instead.
+# Set the following in Render environment:
+#   EMAIL_HOST=smtp.resend.com, EMAIL_HOST_USER=resend,
+#   EMAIL_HOST_PASSWORD=<resend_api_key>, EMAIL_PORT=587,
+#   DEFAULT_FROM_EMAIL=Zack Academy <onboarding@resend.dev>
 
 RESEND_API_KEY = os.getenv('RESEND_API_KEY')
 
@@ -242,14 +244,16 @@ DEFAULT_FROM_EMAIL = os.getenv(
     f"Zack Academy <{EMAIL_HOST_USER}>" if EMAIL_HOST_USER else 'Zack Academy <onboarding@resend.dev>'
 )
 
-# Backend selection: Resend API (anymail) > Gmail SMTP > console (dev fallback)
+# Always configure anymail if the API key is present (needed even when using SMTP relay)
+if RESEND_API_KEY:
+    ANYMAIL = {'RESEND_API_KEY': RESEND_API_KEY}
+    if 'anymail' not in INSTALLED_APPS:
+        INSTALLED_APPS += ['anymail']
+
+# Backend selection: explicit env var > SMTP (when host/user/password set) > console
 _explicit_backend = os.getenv('EMAIL_BACKEND', '').strip()
 if _explicit_backend:
     EMAIL_BACKEND = _explicit_backend
-elif RESEND_API_KEY:
-    EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
-    ANYMAIL = {'RESEND_API_KEY': RESEND_API_KEY}
-    INSTALLED_APPS += ['anymail']
 elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 else:
