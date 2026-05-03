@@ -5,60 +5,85 @@
 
 {% block extra_css %}
 <style>
-    html.dark .hero-badge {
-        background-color: rgba(30, 41, 59, 0.92);
-        border-color: rgba(96, 165, 250, 0.28);
-        color: #93c5fd;
+    .hero-panel {
+        box-shadow: 0 16px 50px rgba(15, 23, 42, 0.08);
+    }
+
+    html.dark .hero-panel {
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.8)) !important;
+        border-color: rgba(59, 130, 246, 0.14) !important;
+        box-shadow: 0 24px 60px rgba(2, 6, 23, 0.45) !important;
+    }
+
+    html.dark .hero-panel .inline-flex.rounded-full {
+        background-color: rgba(30, 41, 59, 0.92) !important;
+        border-color: rgba(96, 165, 250, 0.28) !important;
+        color: #93c5fd !important;
+    }
+
+    html.dark .hero-glow-line {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+        box-shadow: 0 18px 40px rgba(37, 99, 235, 0.28) !important;
+    }
+
+    html.dark .hero-glow-line:hover {
+        background-color: #1d4ed8 !important;
+    }
+
+    html.dark a[href*="login_student"].rounded-xl {
+        background-color: rgba(15, 23, 42, 0.96) !important;
+        border-color: rgba(96, 165, 250, 0.32) !important;
+        color: #93c5fd !important;
+    }
+
+    html.dark a[href*="login_student"].rounded-xl:hover {
+        background-color: rgba(30, 41, 59, 0.96) !important;
+        border-color: rgba(96, 165, 250, 0.48) !important;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <!-- Hero Section -->
-<section class="relative overflow-hidden bg-gradient-to-br from-slate-900 via-primary-950 to-slate-900 py-24 sm:py-32">
-    <!-- Background decoration -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-40 -right-32 w-96 h-96 bg-primary-600 opacity-10 rounded-full blur-3xl"></div>
-        <div class="absolute -bottom-40 -left-32 w-96 h-96 bg-secondary-600 opacity-10 rounded-full blur-3xl"></div>
-    </div>
+<section class="relative overflow-hidden bg-white">
+    <div class="relative w-full px-4 sm:px-6 lg:px-8">
+        <div class="hero-panel relative w-full border border-slate-200 bg-white px-6 py-16 text-center shadow-sm sm:px-10 md:px-16 lg:px-24 min-h-screen flex items-center justify-center">
+            <div class="mx-auto max-w-4xl">
+                <div class="mb-8 inline-flex items-center rounded-full border border-primary-200 bg-white/85 px-4 py-2 text-sm font-medium text-primary-700 shadow-sm backdrop-blur-sm">
+                    <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Transform Your Learning Journey
+                </div>
 
-    <div class="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
-        <!-- Badge -->
-        <div class="hero-badge mb-8 inline-flex items-center rounded-full border border-primary-400/30 bg-primary-900/50 px-4 py-2 text-sm font-medium text-primary-300 backdrop-blur-sm">
-            <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            Transform Your Learning Journey
-        </div>
+                <h1 class="mx-auto max-w-4xl text-5xl font-extrabold leading-[0.95] tracking-tight text-slate-900 sm:text-6xl lg:text-7xl xl:text-[5.5rem]">
+                    Welcome to
+                    <span class="mt-3 block bg-gradient-to-r from-primary-700 via-primary-600 to-secondary-500 bg-clip-text text-transparent">
+                        Zack Academy
+                    </span>
+                </h1>
 
-        <!-- Heading -->
-        <h1 class="text-5xl font-extrabold leading-tight tracking-tight text-white sm:text-6xl lg:text-7xl">
-            Welcome to
-            <span class="block mt-2 bg-gradient-to-r from-primary-400 via-blue-400 to-secondary-400 bg-clip-text text-transparent">
-                Zack Academy
-            </span>
-        </h1>
+                <p class="mx-auto mt-8 max-w-3xl text-xl font-normal text-slate-700 md:text-[2.05rem]">
+                    Your Gateway to Academic Excellence
+                </p>
 
-        <!-- Subheading -->
-        <p class="mx-auto mt-6 max-w-2xl text-xl font-medium text-slate-300">
-            Your Gateway to Academic Excellence
-        </p>
+                <p class="mx-auto mt-5 max-w-3xl text-lg leading-relaxed text-slate-600 md:text-[1.02rem]">
+                    Embark on a journey of knowledge and growth. Streamline your academic life with powerful tools to manage courses, track progress, and connect with your learning community.
+                </p>
 
-        <p class="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
-            Embark on a journey of knowledge and growth. Streamline your academic life with powerful tools to manage courses, track progress, and connect with your learning community.
-        </p>
-
-        <!-- CTA Buttons -->
-        <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <a href="{% url 'register_student' %}" class="group inline-flex items-center justify-center rounded-xl bg-primary-600 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-primary-900/40 transition-all duration-300 hover:-translate-y-1 hover:bg-primary-500 hover:shadow-xl hover:shadow-primary-900/50">
-                <span>Get Started Free</span>
-                <svg class="ml-3 h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-            </a>
-            <a href="{% url 'login_student' %}" class="inline-flex items-center justify-center rounded-xl border border-slate-600 bg-slate-800/60 px-8 py-4 text-lg font-semibold text-slate-200 backdrop-blur transition-all duration-300 hover:border-slate-500 hover:bg-slate-700/60 hover:text-white">
-                Sign In
-            </a>
+                <div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                    <a href="{% url 'register_student' %}" class="group hero-glow-line inline-flex items-center justify-center rounded-xl bg-primary-600 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:bg-primary-500 hover:shadow-xl">
+                        <span>Get Started Free</span>
+                        <svg class="ml-3 h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                    </a>
+                    <a href="{% url 'login_student' %}" class="inline-flex items-center justify-center rounded-xl border border-primary-200 bg-white/75 px-8 py-4 text-lg font-semibold text-primary-700 shadow-sm backdrop-blur transition-all duration-300 hover:border-primary-300 hover:bg-white">
+                        Sign In
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </section>
