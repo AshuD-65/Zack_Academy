@@ -152,7 +152,10 @@ def create_checkout_session(request):
         }
 
         if student:
-            customer_id = _get_or_create_stripe_customer(student)
+            try:
+                customer_id = _get_or_create_stripe_customer(student)
+            except Exception:
+                customer_id = None
             if customer_id:
                 session_kwargs["customer"] = customer_id
             else:
