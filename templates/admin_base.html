@@ -318,6 +318,104 @@
         body.dark-mode p.font-medium { color: #f3f4f6 !important; }
         body.dark-mode span.font-medium,
         body.dark-mode span.font-semibold { color: #f3f4f6 !important; }
+
+        /* ── STATUS BADGES - fully visible in dark mode ── */
+
+        /* Green = Released / Success */
+        body.dark-mode .bg-green-100 {
+            background-color: #14532d !important;
+        }
+        body.dark-mode .text-green-800 {
+            color: #86efac !important;
+        }
+
+        /* Yellow = Pending / Warning */
+        body.dark-mode .bg-yellow-100 {
+            background-color: #713f12 !important;
+        }
+        body.dark-mode .text-yellow-800 {
+            color: #fde68a !important;
+        }
+
+        /* Red = Important / Error / Delete */
+        body.dark-mode .bg-red-100 {
+            background-color: #7f1d1d !important;
+        }
+        body.dark-mode .text-red-800 {
+            color: #fca5a5 !important;
+        }
+
+        /* Blue = Student / Info */
+        body.dark-mode .bg-blue-100 {
+            background-color: #1e3a5f !important;
+        }
+        body.dark-mode .text-blue-800 {
+            color: #93c5fd !important;
+        }
+        body.dark-mode .bg-blue-50 {
+            background-color: #1e3a5f !important;
+        }
+        body.dark-mode .text-blue-700 {
+            color: #93c5fd !important;
+        }
+
+        /* Purple = Total count */
+        body.dark-mode .bg-purple-100 {
+            background-color: #3b0764 !important;
+        }
+        body.dark-mode .text-purple-800 {
+            color: #d8b4fe !important;
+        }
+
+        /* Amber = Admin / Warning */
+        body.dark-mode .bg-amber-100 {
+            background-color: #78350f !important;
+        }
+        body.dark-mode .text-amber-800 {
+            color: #fcd34d !important;
+        }
+
+        /* Emerald = Teacher */
+        body.dark-mode .bg-emerald-100 {
+            background-color: #064e3b !important;
+        }
+        body.dark-mode .text-emerald-700 {
+            color: #6ee7b7 !important;
+        }
+
+        /* Gray badge (Hidden) */
+        body.dark-mode .bg-gray-100 {
+            background-color: #374151 !important;
+        }
+        body.dark-mode .text-gray-600 { color: #9ca3af !important; }
+
+        /* Inline-flex badges - ensure readable in dark */
+        body.dark-mode span.inline-flex.rounded,
+        body.dark-mode span.inline-flex.rounded-full {
+            opacity: 1 !important;
+        }
+
+        /* Avatar initials circles */
+        body.dark-mode .bg-blue-100.text-blue-700 {
+            background-color: #1e3a5f !important;
+            color: #93c5fd !important;
+        }
+        body.dark-mode .bg-emerald-100.text-emerald-700 {
+            background-color: #064e3b !important;
+            color: #6ee7b7 !important;
+        }
+        body.dark-mode .bg-amber-100.text-amber-700 {
+            background-color: #78350f !important;
+            color: #fcd34d !important;
+        }
+
+        /* Action button color overrides in dark mode */
+        body.dark-mode .text-amber-700 { color: #fcd34d !important; }
+        body.dark-mode .border-amber-300 { border-color: #92400e !important; }
+        body.dark-mode .text-green-700 { color: #86efac !important; }
+        body.dark-mode .border-green-300 { border-color: #14532d !important; }
+        body.dark-mode .text-red-600 { color: #f87171 !important; }
+        body.dark-mode .border-red-200 { border-color: #7f1d1d !important; }
     </style>
 </head>
 
