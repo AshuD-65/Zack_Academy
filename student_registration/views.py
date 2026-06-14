@@ -420,14 +420,23 @@ def admin_course_delete(request, course_code):
 def admin_course_materials(request, course_code):
     """Admin view to see all course materials (lessons and assignments) posted by teacher."""
     course = get_object_or_404(Course, course_code=course_code)
-    materials = CourseMaterial.objects.filter(course=course).order_by('kind', 'order', 'created_at')
+    materials = CourseMaterial.objects.filter(course=course).prefetch_related('files').order_by('kind', 'order', 'created_at')
     lessons = materials.filter(kind=CourseMaterial.KIND_LESSON)
     assignments = materials.filter(kind=CourseMaterial.KIND_ASSIGNMENT)
+    
+    # Count total materials
+    total_materials_count = materials.count()
+    visible_materials_count = materials.filter(is_visible=True).count()
+    important_materials_count = materials.filter(is_important=True).count()
+    
     return render(request, 'admin/course_materials.html', {
         'course': course,
         'materials': materials,
         'lessons': lessons,
         'assignments': assignments,
+        'total_materials_count': total_materials_count,
+        'visible_materials_count': visible_materials_count,
+        'important_materials_count': important_materials_count,
     })
 
 
