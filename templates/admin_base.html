@@ -4,7 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light">
     <title>{% block title %}Admin Panel - Zack Academy{% endblock %}</title>
     <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
     <link rel="shortcut icon" href="{% static 'favicon.svg' %}">
@@ -19,13 +18,13 @@
     
     {% block extra_css %}{% endblock %}
 </head>
-<body class="min-h-screen bg-gray-50 font-sans antialiased">
+<body class="min-h-screen bg-white dark:bg-gray-900 font-sans antialiased transition-colors duration-300">
     
     <!-- Messages (if any) -->
     {% if messages %}
         <div class="fixed top-4 right-4 z-50 space-y-2 max-w-md">
             {% for message in messages %}
-                <div class="bg-{% if message.tags == 'error' %}red{% elif message.tags == 'warning' %}yellow{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-50 border border-{% if message.tags == 'error' %}red{% elif message.tags == 'warning' %}yellow{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-200 text-{% if message.tags == 'error' %}red{% elif message.tags == 'warning' %}yellow{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-800 px-4 py-3 rounded-lg shadow-lg animate-slide-in-right">
+                <div class="bg-{% if message.tags == 'error' %}red{% elif message.tags == 'warning' %}yellow{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-50 border border-{% if message.tags == 'error' %}red{% elif message.tags == 'warning' %}yellow{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-200 text-{% if message.tags == 'error' %}red{% elif message.tags == 'warning' %}yellow{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-800 px-4 py-3 rounded-lg shadow-lg">
                     {{ message }}
                 </div>
             {% endfor %}
@@ -33,187 +32,146 @@
     {% endif %}
 
     <div class="flex h-screen overflow-hidden">
-        <!-- Modern Sidebar with Gradient Background - FIXED COLORS -->
-        <aside class="w-72 flex-shrink-0 flex flex-col" style="background: linear-gradient(180deg, #4f46e5 0%, #4338ca 50%, #3730a3 100%);">
-            <!-- Sidebar Header -->
-            <div class="p-6 border-b border-white/20">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-indigo-200 uppercase tracking-wider">Control Center</p>
-                        <h2 class="text-lg font-bold text-white">Admin Panel</h2>
-                    </div>
+        <!-- Clean Sidebar -->
+        <aside class="w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col">
+            <!-- Sidebar Header with Theme Toggle -->
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">Control Center</p>
+                    <h2 class="mt-1 font-bold text-gray-900 dark:text-white">Admin Panel</h2>
                 </div>
+                {% include 'partials/theme_toggle.html' with toggle_id='theme-toggle-admin' %}
             </div>
 
             <!-- Navigation Menu -->
-            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-                <!-- Dashboard -->
-                <a href="{% url 'admin_dashboard' %}" class="nav-link group flex items-center space-x-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200" style="color: rgba(255, 255, 255, 0.9);">
-                    <svg class="w-5 h-5 transition-colors" style="color: #a5b4fc;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                    </svg>
-                    <span>Dashboard</span>
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+                <a href="{% url 'admin_dashboard' %}" class="nav-link block rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400">
+                    <span class="flex items-center">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                        </svg>
+                        Dashboard
+                    </span>
                 </a>
-
-                <!-- Students -->
-                <a href="{% url 'admin_all_students' %}" class="nav-link group flex items-center space-x-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200" style="color: rgba(255, 255, 255, 0.9);">
-                    <svg class="w-5 h-5 transition-colors" style="color: #a5b4fc;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                    </svg>
-                    <span>Students</span>
+                <a href="{% url 'admin_all_students' %}" class="nav-link block rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400">
+                    <span class="flex items-center">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        Students
+                    </span>
                 </a>
-
-                <!-- Teachers -->
-                <a href="{% url 'admin_all_teachers' %}" class="nav-link group flex items-center space-x-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200" style="color: rgba(255, 255, 255, 0.9);">
-                    <svg class="w-5 h-5 transition-colors" style="color: #a5b4fc;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                    </svg>
-                    <span>Teachers</span>
+                <a href="{% url 'admin_all_teachers' %}" class="nav-link block rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400">
+                    <span class="flex items-center">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        Teachers
+                    </span>
                 </a>
-
-                <!-- Courses -->
-                <a href="{% url 'admin_all_courses' %}" class="nav-link group flex items-center space-x-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200" style="color: rgba(255, 255, 255, 0.9);">
-                    <svg class="w-5 h-5 transition-colors" style="color: #a5b4fc;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                    </svg>
-                    <span>Courses</span>
+                <a href="{% url 'admin_all_courses' %}" class="nav-link block rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400">
+                    <span class="flex items-center">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                        Courses
+                    </span>
                 </a>
-
-                <!-- Divider -->
-                <div class="py-2">
-                    <div class="h-px" style="background: rgba(255, 255, 255, 0.2);"></div>
-                </div>
-
-                <!-- All Users -->
-                <a href="{% url 'admin_all_users' %}" class="nav-link group flex items-center space-x-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200" style="color: rgba(255, 255, 255, 0.9);">
-                    <svg class="w-5 h-5 transition-colors" style="color: #a5b4fc;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                    </svg>
-                    <span>All Users</span>
+                <a href="{% url 'admin_all_users' %}" class="nav-link block rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400">
+                    <span class="flex items-center">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        All Users
+                    </span>
                 </a>
-
-                <!-- Staff IDs -->
-                <a href="{% url 'admin_staff_ids' %}" class="nav-link group flex items-center space-x-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200" style="color: rgba(255, 255, 255, 0.9);">
-                    <svg class="w-5 h-5 transition-colors" style="color: #a5b4fc;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
-                    </svg>
-                    <span>Staff IDs</span>
+                <a href="{% url 'admin_staff_ids' %}" class="nav-link block rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400">
+                    <span class="flex items-center">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                        </svg>
+                        Staff IDs
+                    </span>
                 </a>
             </nav>
 
-            <!-- Logout Section -->
-            <div class="p-4 border-t border-white/20" style="background: rgba(31, 41, 107, 0.5);">
-                <a href="{% url 'admin_logout' %}" class="group flex items-center justify-center space-x-2 rounded-xl px-4 py-3 text-sm font-medium text-white transition-all duration-200" style="background: rgba(239, 68, 68, 0.2);">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                    </svg>
-                    <span>Logout</span>
+            <!-- Logout Button -->
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                <a href="{% url 'admin_logout' %}" class="block rounded-md px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20">
+                    <span class="flex items-center">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                        Logout
+                    </span>
                 </a>
             </div>
         </aside>
 
         <!-- Main Content Area -->
-        <main class="flex-1 overflow-y-auto bg-gray-50">
+        <main class="flex-1 overflow-y-auto bg-white dark:bg-gray-900">
             {% block admin_content %}{% endblock %}
         </main>
     </div>
 
     <style>
-        /* Smooth scrollbar styling */
-        nav::-webkit-scrollbar {
-            width: 6px;
-        }
-        nav::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        nav::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-        }
-        nav::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        /* Hover effects */
-        .nav-link:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: white !important;
-            transform: scale(1.05);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-        }
-
-        .nav-link:hover svg {
-            color: white !important;
-        }
-
-        .nav-link:active {
-            transform: scale(0.95);
-        }
-
-        /* Active state */
+        /* Active state highlighting */
         .nav-link.active {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
-            color: white !important;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-            border-left: 4px solid white;
+            background-color: rgb(239 246 255);
+            color: rgb(37 99 235);
+            font-weight: 600;
         }
-
-        .nav-link.active svg {
-            color: white !important;
+        .dark .nav-link.active {
+            background-color: rgb(55 65 81);
+            color: rgb(96 165 250);
         }
-
-        /* Logout button hover */
-        a[href*="logout"]:hover {
-            background: #ef4444 !important;
-            transform: scale(1.05);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Slide-in animation for messages */
-        @keyframes slide-in-right {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        .animate-slide-in-right {
-            animation: slide-in-right 0.3s ease-out;
-        }
-
-        /* Staggered slide-in for nav items */
-        @keyframes slideIn {
-            from {
-                transform: translateX(-20px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        .nav-link {
-            animation: slideIn 0.3s ease-out forwards;
-            opacity: 0;
-        }
-
-        .nav-link:nth-child(1) { animation-delay: 0.05s; }
-        .nav-link:nth-child(2) { animation-delay: 0.1s; }
-        .nav-link:nth-child(3) { animation-delay: 0.15s; }
-        .nav-link:nth-child(4) { animation-delay: 0.2s; }
-        .nav-link:nth-child(6) { animation-delay: 0.25s; }
-        .nav-link:nth-child(7) { animation-delay: 0.3s; }
     </style>
+
+    <script>
+        // Theme toggle functionality
+        function applyTheme(theme) {
+            const isDark = theme === 'dark';
+            document.documentElement.classList.toggle('dark', isDark);
+            document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+            localStorage.setItem('theme-preference', theme);
+
+            document.querySelectorAll('.theme-toggle').forEach(function(button) {
+                button.dataset.theme = theme;
+                button.setAttribute('aria-checked', isDark ? 'true' : 'false');
+            });
+        }
+
+        function toggleTheme() {
+            const nextTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+            applyTheme(nextTheme);
+        }
+
+        // Apply saved theme on load
+        const storedTheme = localStorage.getItem('theme-preference') || 'light';
+        applyTheme(storedTheme);
+
+        // Setup theme toggle listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.theme-toggle').forEach(function(button) {
+                button.addEventListener('click', toggleTheme);
+            });
+
+            // Highlight active navigation link
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach(link => {
+                const linkPath = link.getAttribute('href');
+                if (currentPath === linkPath || (currentPath.startsWith(linkPath) && linkPath !== '{% url "admin_dashboard" %}')) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
 
     <script>
         // Highlight active navigation link
