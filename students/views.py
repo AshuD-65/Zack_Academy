@@ -690,17 +690,23 @@ def course_detail(request, course_code):
     is_enrolled = False
     submissions_by_material = {}
     
-    # Get course materials (only visible ones) and split by lesson/assignment
-    materials = CourseMaterial.objects.filter(course=course, is_visible=True).order_by('order', 'created_at')
-    important_materials = materials.filter(is_important=True)
-    lessons = materials.filter(kind=CourseMaterial.KIND_LESSON)
-    assignments = materials.filter(kind=CourseMaterial.KIND_ASSIGNMENT)
+    # Initialize materials as empty - only load if enrolled
+    materials = []
+    important_materials = []
+    lessons = []
+    assignments = []
 
     if 'student_id' in request.session:
         try:
             current_student = Student.objects.get(student_id=request.session['student_id'])
             is_enrolled = current_student.courses.filter(course_code=course.course_code).exists()
             if is_enrolled:
+                # Only get course materials if student is enrolled
+                materials = CourseMaterial.objects.filter(course=course, is_visible=True).order_by('order', 'created_at')
+                important_materials = materials.filter(is_important=True)
+                lessons = materials.filter(kind=CourseMaterial.KIND_LESSON)
+                assignments = materials.filter(kind=CourseMaterial.KIND_ASSIGNMENT)
+                
                 completion = CourseCompletion.objects.filter(student=current_student, course=course).first()
                 submissions_by_material = {
                     s.material_id: s for s in AssignmentSubmission.objects.filter(
