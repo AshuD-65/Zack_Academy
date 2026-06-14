@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.contrib import messages
 import json
 from .forms import (
     StudentRegistrationForm,
@@ -545,27 +546,31 @@ def course_list(request):
 def enroll_course(request):
     """
     A view to handle course enrollment.
+    Requires user to be logged in.
     """
+    # Check if a student is logged in first
+    if 'student_id' not in request.session:
+        messages.info(request, 'Please login or register to enroll in courses.')
+        return redirect(reverse('login_student'))
+    
     if request.method == 'POST':
         # Get the course_code from the form
         course_code = request.POST.get('course_code')
         
-        # Check if a student is logged in
-        if 'student_id' in request.session:
-            student_id = request.session['student_id']
-            try:
-                # Get the student and the course objects
-                student = get_object_or_404(Student, student_id=student_id)
-                course = Course.objects.filter(course_code=course_code, is_approved=True).first()
-                if not course:
-                    return redirect(reverse('course_list'))
-                
-                # Add the course to the student's courses
-                student.courses.add(course)
-                return redirect(reverse('dashboard'))
-            except (Student.DoesNotExist, Course.DoesNotExist):
-                # Handle cases where the student or course is not found
-                pass
+        student_id = request.session['student_id']
+        try:
+            # Get the student and the course objects
+            student = get_object_or_404(Student, student_id=student_id)
+            course = Course.objects.filter(course_code=course_code, is_approved=True).first()
+            if not course:
+                return redirect(reverse('course_list'))
+            
+            # Add the course to the student's courses
+            student.courses.add(course)
+            return redirect(reverse('dashboard'))
+        except (Student.DoesNotExist, Course.DoesNotExist):
+            # Handle cases where the student or course is not found
+            pass
     
     return redirect(reverse('course_list'))
 

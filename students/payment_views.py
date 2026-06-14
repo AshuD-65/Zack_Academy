@@ -75,7 +75,16 @@ def _get_or_create_stripe_customer(student):
 
 
 def checkout(request):
-    """Show checkout page with amount and proceed button."""
+    """
+    Show checkout page with amount and proceed button.
+    Requires user to be logged in.
+    """
+    # Check if student is logged in
+    if 'student_id' not in request.session:
+        from django.contrib import messages
+        messages.info(request, 'Please login or register to proceed with payment.')
+        return redirect(reverse('login_student'))
+    
     course_code = request.GET.get("course_code", "")
     amount_str = request.GET.get("amount_dollars", "2.00")
     try:
