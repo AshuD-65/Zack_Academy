@@ -486,7 +486,26 @@ def admin_teacher_edit(request, teacher_id):
 @require_POST
 def admin_teacher_delete(request, teacher_id):
     teacher = get_object_or_404(Teacher, teacher_id=teacher_id)
+    teacher_name = teacher.name
+    staff_id = teacher.staff_id
+    
+    # Delete the teacher
     teacher.delete()
-    messages.success(request, 'Teacher deleted.')
+    
+    # Optionally mark the Staff ID invitation as released/reusable
+    # (Staff ID invitation stays for record-keeping, but could be reused)
+    if staff_id:
+        try:
+            invitation = StaffIDInvitation.objects.get(staff_id=staff_id)
+            # Mark as released by clearing the used_at timestamp
+            # This allows the Staff ID to be deleted if needed
+            invitation.used_at = None
+            invitation.save()
+            messages.success(request, f'Teacher "{teacher_name}" deleted. Staff ID {staff_id} is now available for reuse.')
+        except StaffIDInvitation.DoesNotExist:
+            messages.success(request, f'Teacher "{teacher_name}" deleted.')
+    else:
+        messages.success(request, f'Teacher "{teacher_name}" deleted.')
+    
     return redirect('admin_all_teachers')
 

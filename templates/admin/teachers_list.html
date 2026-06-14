@@ -13,6 +13,7 @@
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">ID</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Name</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Email</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Staff ID</th>
                     <th class="px-4 py-2 text-right text-xs font-medium text-gray-600 uppercase">Actions</th>
                 </tr>
             </thead>
@@ -33,6 +34,15 @@
                         </div>
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-600">{{ t.email }}</td>
+                    <td class="px-4 py-3 text-sm">
+                        {% if t.staff_id %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                {{ t.staff_id }}
+                            </span>
+                        {% else %}
+                            <span class="text-gray-400 text-xs">—</span>
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-3 text-right">
                         <span class="inline-flex flex-wrap gap-2 justify-end">
                             <a href="{% url 'admin_teacher_edit' t.teacher_id %}" class="btn-outline text-sm">Edit</a>
@@ -41,7 +51,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="4" class="px-4 py-6 text-gray-600 text-center">No teachers.</td></tr>
+                <tr><td colspan="5" class="px-4 py-6 text-gray-600 text-center">No teachers.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
