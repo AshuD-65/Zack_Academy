@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load file_tags %}
 
 {% block title %}{{ course.course_name }} - Zack Academy{% endblock %}
 
@@ -114,8 +115,8 @@
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            <a href="{% url 'view_file' course.main_file.name %}?course_code={{ course.course_code }}" target="_blank" class="btn-primary text-sm">View</a>
-                            <a href="{{ course.main_file.url }}" download class="btn-outline text-sm">Download</a>
+                            <a href="{{ course.main_file.url|fix_cloudinary_url }}" target="_blank" class="btn-primary text-sm">View</a>
+                            <a href="{{ course.main_file.url|fix_cloudinary_url }}" download class="btn-outline text-sm">Download</a>
                         </div>
                     </div>
                 </div>
@@ -163,8 +164,8 @@
                                 {% if m.external_url %}
                                     <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{{ m.external_url }}', true)" class="btn-primary text-sm">Open</button>
                                 {% elif m.file %}
-                                    <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{{ m.file.url }}', true)" class="btn-primary text-sm">View</button>
-                                    <a href="{{ m.file.url }}" download class="btn-outline text-sm">Download</a>
+                                    <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{{ m.file.url|fix_cloudinary_url }}', true)" class="btn-primary text-sm">View</button>
+                                    <a href="{{ m.file.url|fix_cloudinary_url }}" download class="btn-outline text-sm">Download</a>
                                 {% endif %}
                             </div>
                         </div>
@@ -193,8 +194,8 @@
                                 {% if m.external_url %}
                                     <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{{ m.external_url }}', true)" class="btn-primary text-sm">Open</button>
                                 {% elif m.file %}
-                                    <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{{ m.file.url }}', true)" class="btn-primary text-sm">View</button>
-                                    <a href="{{ m.file.url }}" download class="btn-outline text-sm">Download</a>
+                                    <button onclick="markAndOpen('{{ m.material_id }}', '{{ course.course_code }}', '{{ m.file.url|fix_cloudinary_url }}', true)" class="btn-primary text-sm">View</button>
+                                    <a href="{{ m.file.url|fix_cloudinary_url }}" download class="btn-outline text-sm">Download</a>
                                 {% endif %}
                                 {% if m.material_id in submissions_by_material %}
                                 <span class="text-sm text-green-600 font-medium">✓ Submitted</span>
