@@ -980,7 +980,7 @@ def generate_certificate(request):
 
 
 def teacher_exam_manage(request, course_code):
-    """Teacher manages exam: set passing score, release status, and regenerate questions."""
+    """Teacher manages exam: set passing score, release status, regenerate or manually add questions."""
     get_teacher = teacher_required(None)
     teacher, redirect_response = get_teacher(request)
     if redirect_response:
@@ -992,8 +992,6 @@ def teacher_exam_manage(request, course_code):
         action = request.POST.get('action', '')
 
         if action == 'create_exam' and exam is None:
-            # Create exam with teacher-specified settings
-            # clamp number of questions to allowed maximum
             raw_num_questions = int(request.POST.get('num_questions', 10))
             num_q = max(1, min(raw_num_questions, 100))
             exam = Exam.objects.create(
@@ -1002,56 +1000,115 @@ def teacher_exam_manage(request, course_code):
                 passing_score=int(request.POST.get('passing_score', 70)),
                 num_questions=num_q,
                 time_limit_minutes=int(request.POST.get('time_limit_minutes', 60)),
-                is_released=False  # Not released by default
+                is_released=False
             )
-
-            # Auto-generate questions
-            from .exam_generator import regenerate_exam_questions
-            num_created = regenerate_exam_questions(exam)
-
-            from django.contrib import messages
-            messages.success(request, f'Exam created with {num_created} auto-generated questions.')
+            # No auto-generation — teacher adds questions manually or via file upload
+            messages.success(request, 'Exam created. Now add your questions below.')
             return redirect(reverse('teacher_exam_manage', kwargs={'course_code': course_code}))
 
         elif action == 'update_exam' and exam:
-            # Update exam settings
             exam.title = request.POST.get('title', exam.title)
             exam.passing_score = int(request.POST.get('passing_score', exam.passing_score))
-            raw_num_questions = int(request.POST.get('num_questions', exam.num_questions))
-            exam.num_questions = max(1, min(raw_num_questions, 100))
             exam.time_limit_minutes = int(request.POST.get('time_limit_minutes', exam.time_limit_minutes))
             exam.save()
-
-            # Regenerate questions immediately so updated question count is applied
-            from .exam_generator import regenerate_exam_questions
-            num_created = regenerate_exam_questions(exam)
-
-            from django.contrib import messages
-            messages.success(request, f'Exam settings updated. Regenerated {num_created} questions.')
+            messages.success(request, 'Exam settings updated.')
             return redirect(reverse('teacher_exam_manage', kwargs={'course_code': course_code}))
 
         elif action == 'toggle_release' and exam:
-            # Toggle release status
             exam.is_released = not exam.is_released
             exam.save()
-
-            from django.contrib import messages
             status = 'released' if exam.is_released else 'unreleased'
-            messages.success(request, f'Exam {status}. Students can {"now" if exam.is_released else "no longer"} take it.')
+            messages.success(request, f'Exam {status}.')
             return redirect(reverse('teacher_exam_manage', kwargs={'course_code': course_code}))
 
-        elif action == 'regenerate_questions' and exam:
-            # Regenerate all questions
-            from .exam_generator import regenerate_exam_questions
-            num_created = regenerate_exam_questions(exam)
+        elif action == 'delete_all_questions' and exam:
+            ExamQuestion.objects.filter(exam=exam).delete()
+            messages.success(request, 'All questions deleted.')
+            return redirect(reverse('teacher_exam_manage', kwargs={'course_code': course_code}))
 
-            from django.contrib import messages
-            messages.success(request, f'Regenerated {num_created} questions.')
+        elif action == 'add_question' and exam:
+            # Teacher manually adds a question
+            q_type = request.POST.get('question_type', ExamQuestion.TYPE_MULTIPLE_CHOICE)
+            question_text = request.POST.get('question_text', '').strip()
+            correct_answer = request.POST.get('correct_answer', '').strip()
+
+            if not question_text or not correct_answer:
+                messages.error(request, 'Question text and correct answer are required.')
+                return redirect(reverse('teacher_exam_manage', kwargs={'course_code': course_code}))
+
+            options_json = None
+            if q_type == ExamQuestion.TYPE_MULTIPLE_CHOICE:
+                options = [
+                    request.POST.get('option_a', '').strip(),
+                    request.POST.get('option_b', '').strip(),
+                    request.POST.get('option_c', '').strip(),
+                    request.POST.get('option_d', '').strip(),
+                ]
+                options_json = [o for o in options if o]
+
+            last_order = ExamQuestion.objects.filter(exam=exam).order_by('-order').values_list('order', flat=True).first() or 0
+            ExamQuestion.objects.create(
+                exam=exam,
+                question_text=question_text,
+                question_type=q_type,
+                options_json=options_json,
+                correct_answer=correct_answer,
+                order=last_order + 1,
+                points=int(request.POST.get('points', 1)),
+            )
+            messages.success(request, 'Question added.')
+            return redirect(reverse('teacher_exam_manage', kwargs={'course_code': course_code}))
+
+        elif action == 'delete_question' and exam:
+            question_id = request.POST.get('question_id')
+            ExamQuestion.objects.filter(question_id=question_id, exam=exam).delete()
+            messages.success(request, 'Question deleted.')
+            return redirect(reverse('teacher_exam_manage', kwargs={'course_code': course_code}))
+
+        elif action == 'upload_exam_file' and exam:
+            uploaded_file = request.FILES.get('exam_file')
+            if not uploaded_file:
+                messages.error(request, 'Please select a file to upload.')
+                return redirect(reverse('teacher_exam_manage', kwargs={'course_code': course_code}))
+
+            filename = uploaded_file.name.lower()
+            allowed = ('.pdf', '.txt', '.md', '.docx')
+            if not any(filename.endswith(ext) for ext in allowed):
+                messages.error(request, 'Only PDF, TXT, DOCX, or MD files are supported.')
+                return redirect(reverse('teacher_exam_manage', kwargs={'course_code': course_code}))
+
+            from .exam_file_parser import extract_text_from_uploaded_file, parse_questions_from_text
+            text = extract_text_from_uploaded_file(uploaded_file, uploaded_file.name)
+            if not text.strip():
+                messages.error(request, 'Could not read text from the file. Make sure it is not a scanned image PDF.')
+                return redirect(reverse('teacher_exam_manage', kwargs={'course_code': course_code}))
+
+            parsed = parse_questions_from_text(text)
+            if not parsed:
+                messages.error(request, 'No questions found. Make sure your file uses the correct format (Q: ... Answer: ...).')
+                return redirect(reverse('teacher_exam_manage', kwargs={'course_code': course_code}))
+
+            # Get current max order
+            last_order = ExamQuestion.objects.filter(exam=exam).order_by('-order').values_list('order', flat=True).first() or 0
+
+            created = 0
+            for i, q_data in enumerate(parsed, start=1):
+                ExamQuestion.objects.create(
+                    exam=exam,
+                    question_text=q_data['question_text'],
+                    question_type=q_data['question_type'],
+                    options_json=q_data['options_json'],
+                    correct_answer=q_data['correct_answer'],
+                    order=last_order + i,
+                    points=1,
+                )
+                created += 1
+
+            messages.success(request, f'Successfully imported {created} questions from the file.')
             return redirect(reverse('teacher_exam_manage', kwargs={'course_code': course_code}))
 
     questions = ExamQuestion.objects.filter(exam=exam).order_by('order') if exam else []
 
-    # Get exam statistics
     attempts_count = 0
     pass_rate = 0
     if exam:
