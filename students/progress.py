@@ -31,17 +31,17 @@ def recalculate_course_progress(student, course):
         .count()
     )
 
-    progress_percent = min(int((viewed_materials / total_materials) * 100), 100)
+    progress_percent = min(int((viewed_materials / total_materials) * 100), 99)  # max 99% until exam is passed
     completion.progress_percent = progress_percent
 
-    if progress_percent >= 100:
-        if completion.status != CourseCompletion.STATUS_COMPLETED:
-            completion.status = CourseCompletion.STATUS_COMPLETED
-            completion.completed_at = timezone.now()
+    # Never auto-complete based on views alone — exam pass is required for 100%
+    # If somehow status was COMPLETED (e.g. no exam course), keep it
+    if completion.status == CourseCompletion.STATUS_COMPLETED:
+        # Already completed via exam — don't downgrade
+        pass
     else:
-        if completion.status == CourseCompletion.STATUS_COMPLETED:
-            completion.status = CourseCompletion.STATUS_IN_PROGRESS
-            completion.completed_at = None
+        completion.status = CourseCompletion.STATUS_IN_PROGRESS
+        completion.completed_at = None
 
     completion.save(update_fields=['progress_percent', 'status', 'completed_at', 'updated_at'])
     return completion, total_materials, viewed_materials

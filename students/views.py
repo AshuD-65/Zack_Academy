@@ -1165,11 +1165,11 @@ def student_take_exam(request, course_code):
                 course=course,
                 defaults={'status': CourseCompletion.STATUS_IN_PROGRESS}
             )
-            # Mark as exam passed (can be used for certificate eligibility)
-            if completion.status != CourseCompletion.STATUS_COMPLETED:
-                completion.status = CourseCompletion.STATUS_COMPLETED
-                completion.completed_at = timezone.now()
-                completion.save()
+            # Set 100% progress and mark as completed only when exam is passed
+            completion.status = CourseCompletion.STATUS_COMPLETED
+            completion.progress_percent = 100
+            completion.completed_at = timezone.now()
+            completion.save(update_fields=['status', 'progress_percent', 'completed_at', 'updated_at'])
             
             # Redirect to certificate page after passing
             from django.contrib import messages
