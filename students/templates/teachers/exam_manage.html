@@ -188,7 +188,9 @@ Answer: True
                                 <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">{{ q.get_question_type_display }}</span>
                                 {% if q.options_json %}
                                     {% for opt in q.options_json %}
-                                    <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">{{ forloop.counter|add:64|chr }}) {{ opt }}</span>
+                                    <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
+                                        {% if forloop.counter == 1 %}A{% elif forloop.counter == 2 %}B{% elif forloop.counter == 3 %}C{% else %}D{% endif %}) {{ opt }}
+                                    </span>
                                     {% endfor %}
                                 {% endif %}
                             </div>
